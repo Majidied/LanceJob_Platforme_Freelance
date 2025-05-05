@@ -8,4 +8,9 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  server: {
+    port: 3000,
+    open: true, // ouvre automatiquement le navigateur au démarrage
+    host: true,  // pour accepter les connexions depuis le réseau
+  }
 })
