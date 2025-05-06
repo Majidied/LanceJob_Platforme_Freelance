@@ -1,5 +1,5 @@
-import ProfileSetup from "./pages/Profile.page"
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import Routes from "./routes";
 
 const queryClient = new QueryClient();
 
@@ -7,7 +7,7 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ProfileSetup/>
+      <Routes />
     </QueryClientProvider>
   )
 }
