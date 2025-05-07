@@ -2,7 +2,7 @@ import React from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Navbar from "../../components/navbar";
 import Sidebar from "../../components/sidebar/user";
-import routes from "../../routes/routes";
+import routes from "../../components/sidebar/user/routes";
 
 export default function User(props) {
   const { ...rest } = props;

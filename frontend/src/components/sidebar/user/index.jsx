@@ -3,7 +3,7 @@
 import { HiX } from "react-icons/hi";
 import Links from "../Links";
 import logo from "../../../assets/img/sideBar/logo_white.png";
-import routesfr from "../../../routes/routes";
+import routesfr from "./routes";
 
 const Sidebar = ({ open, onClose }) => {
   return (
