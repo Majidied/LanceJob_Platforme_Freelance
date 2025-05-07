@@ -2,9 +2,12 @@ import { RouterProvider, createBrowserRouter, Navigate } from 'react-router-dom'
 import Landing from '../pages/landing';
 import ProfileSetup from '../pages/Profile.page';
 
+import LoginPage from '../pages/LoginPage';
+import RegisterPage from '../pages/RegisterPage';
+
 const Routes = () => {
   // Simulate token retrieval from local storage
-  const token = localStorage.getItem('token');
+  const token = false;
 
   // Define public routes accessible to all users
   const routesForPublic = [
@@ -30,11 +33,11 @@ const Routes = () => {
   const routesForNotAuthenticatedOnly = [
     {
       path: '/login',
-      element: <div>Login Page</div>,
+      element: <LoginPage />,
     },
     {
       path: '/register',
-      element: <div>Register Page</div>,
+      element: <RegisterPage />,
     },
   ];
 

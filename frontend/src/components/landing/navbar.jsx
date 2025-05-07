@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import logo from "../../assets/LanceLogo.png";
+
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeLink, setActiveLink] = useState("home");

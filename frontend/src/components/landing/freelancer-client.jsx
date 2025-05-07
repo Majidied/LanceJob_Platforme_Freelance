@@ -83,7 +83,7 @@ const Client = () => {
     };
   
     return (
-      <div id="about" className="max-w-6xl mx-auto h-125 relative">
+      <div id="about" className="max-w-6xl mx-auto h-125 relative m-1.5">
         <div className="absolute top-4 right-4 flex items-center space-x-2 text-white z-20">
           <span className="text-lg">{isFreelance ? "Freelance" : "Client"}</span>
           <button

@@ -1,5 +1,24 @@
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+
+const slideVariants = {
+    enter: (direction) => ({
+        x: direction > 0 ? 300 : -300,
+        opacity: 0,
+        position: 'absolute',
+    }),
+    center: {
+        x: 0,
+        opacity: 1,
+        position: 'relative',
+    },
+    exit: (direction) => ({
+        x: direction < 0 ? 300 : -300,
+        opacity: 0,
+        position: 'absolute',
+    }),
+};
 
 const Carousel = ({
     backgroundImage,
@@ -7,31 +26,36 @@ const Carousel = ({
     showIndicators = true,
     showArrows = true,
     className = "",
-    slides = [], // Array of JSX elements
+    slides = [],
 }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [direction, setDirection] = useState(0);
     const slidesCount = slides.length;
 
     const goToPrevious = () => {
-        const newIndex = currentIndex === 0 ? slidesCount - 1 : currentIndex - 1;
-        setCurrentIndex(newIndex);
+        setDirection(-1);
+        setCurrentIndex(currentIndex === 0 ? slidesCount - 1 : currentIndex - 1);
     };
 
     const goToNext = () => {
-        const newIndex = currentIndex === slidesCount - 1 ? 0 : currentIndex + 1;
-        setCurrentIndex(newIndex);
+        setDirection(1);
+        setCurrentIndex(currentIndex === slidesCount - 1 ? 0 : currentIndex + 1);
     };
-    
-    const goToSlide = (index) => setCurrentIndex(index);
+
+    const goToSlide = (index) => {
+        setDirection(index > currentIndex ? 1 : -1);
+        setCurrentIndex(index);
+    };
 
     useEffect(() => {
         if (!autoSlideInterval) return;
         const interval = setInterval(goToNext, autoSlideInterval);
         return () => clearInterval(interval);
+        // eslint-disable-next-line
     }, [currentIndex, autoSlideInterval]);
 
     const bgImageUrl = backgroundImage || "/api/placeholder/1920/1080";
-    
+
     return (
         <div className={`relative w-full h-full overflow-hidden rounded-2xl ${className}`}>
             <div className="absolute inset-0 z-0">
@@ -40,7 +64,20 @@ const Carousel = ({
             </div>
 
             <div className="relative z-10 w-full h-full flex items-center justify-center">
-                {slides[currentIndex]}
+                <AnimatePresence initial={false} custom={direction}>
+                    <motion.div
+                        key={currentIndex}
+                        custom={direction}
+                        variants={slideVariants}
+                        initial="enter"
+                        animate="center"
+                        exit="exit"
+                        transition={{ type: "spring", stiffness: 400, damping: 30, opacity: { duration: 0.2 } }}
+                        className="w-full h-full flex items-center justify-center"
+                    >
+                        {slides[currentIndex]}
+                    </motion.div>
+                </AnimatePresence>
             </div>
 
             {showArrows && slidesCount > 1 && (

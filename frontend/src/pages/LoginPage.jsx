@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const navigate = useNavigate();
 
   const handleLogin = () => {
     console.log('Login with:', { email, password, rememberMe });
@@ -11,12 +13,12 @@ const LoginPage = () => {
   };
   const handleForgotPassword = (e) => {
     e.preventDefault();
-    window.location.href = '/forgot-password';
+    navigate('/forgot-password');
   };
 
   const handleSignUp = (e) => {
     e.preventDefault();
-    window.location.href = '/register';
+    navigate('/register');
   };
 
   // Cette fonction injecte du CSS directement, garantissant que les styles fonctionnent
@@ -70,8 +72,8 @@ const LoginPage = () => {
         .form-input {
           width: 100%;
           padding: 14px 16px;
-          border: 1px solid rgba(164, 178, 179, 0.2);
-          border-radius: 9999px;
+          border: 0.01rem solid  #95B2C1;
+          border-radius: 15px;
           background-color: white;
           font-size: 0.875rem;
           box-sizing: border-box;
