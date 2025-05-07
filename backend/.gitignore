@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 node_modules/
 .env
 coverage/
@@ -10,3 +11,6 @@ dist/
 build/
 logs/
 tmp/
+=======
+/nodes_modules
+>>>>>>> 4849c7637a8087a5214da62b4bd5a3c6b8c241f4
