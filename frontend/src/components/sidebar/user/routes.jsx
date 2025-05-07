@@ -2,7 +2,7 @@ import React from "react";
 
 
 import Home from "../../../views/user/home";
-import SavedJobs from "../../../views/user/savedJobs";
+import SavedJobs from "../../../views/user/myOffers";
 import Proposals from "../../../views/user/proposals";
 import Messages from "../../../views/user/messages";
 
@@ -23,9 +23,9 @@ const routes = [
     component: <Home />,
   },
   {
-    name: "Saved Jobs",
+    name: "My Offers",
     layout: "/user",
-    path: "savedJob",
+    path: "MyOffers",
     icon: <MdFavoriteBorder className="w-6 h-6" />,
     component: <SavedJobs />,
     secondary: true,
