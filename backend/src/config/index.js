@@ -6,4 +6,6 @@ module.exports = {
   mongoUri: process.env.MONGO_URI || 'mongodb://localhost:27017/lancejob_db',
   jwtSecret: process.env.JWT_SECRET || 'your-secret-key',
   redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
+  email: process.env.EMAIL_USER || 'your-username',
+  emailPassword: process.env.EMAIL_PASS || 'your-password',
 };
