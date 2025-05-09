@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -19,11 +20,12 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['user', 'admin'],
-    default: 'user',
+    enum: ['client', 'freelancer'],
+    default: 'client',
   },
 }, {
-  timestamps: true,
+  discriminatorKey: 'role', 
+  timestamps: true 
 });
 
 module.exports = mongoose.model('User', userSchema);

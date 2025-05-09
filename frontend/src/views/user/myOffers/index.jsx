@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Clock, MapPin, Briefcase, DollarSign, Users, ChevronLeft, Star, Calendar, MessageCircle, User, FilePlus, Check, X } from 'lucide-react';
+import { Clock, MapPin, Briefcase, DollarSign, Users, ChevronLeft, Star, Calendar, MessageCircle, User, FilePlus, Check, X ,Plus} from 'lucide-react';
+import { Link } from "react-router-dom";
 
 const MyOffers = () => {
   const [selectedOffer, setSelectedOffer] = useState(null);
@@ -276,65 +277,78 @@ const MyOffers = () => {
 
   // Default view: list of offers
   return (
-    <div className="grid h-full grid-cols-1 gap-6 p-6 bg-slate-100 ">
-      {offers.map(offer => (
-        <div 
-          key={offer.id}
-          className="overflow-hidden transition-shadow bg-white shadow-sm cursor-pointer rounded-xl hover:shadow-md"
-          onClick={() => handleOfferClick(offer)}
-        >
-          <div className="p-5">
-            <div className="flex items-center mb-3">
-              <span className="px-2 py-1 text-xs font-semibold text-green-700 bg-green-100 rounded-md">
-                Active
-              </span>
-              <span className="ml-auto text-sm text-slate-500">{offer.date}</span>
-            </div>
-            
-            <h2 className="mb-2 text-lg font-bold text-slate-800">{offer.title}</h2>
-            <p className="mb-4 text-sm text-slate-600 line-clamp-2">{offer.description}</p>
-            
-            <div className="flex flex-wrap gap-2 mb-5">
-              {offer.skills.map((skill, index) => (
-                <span key={index} className="px-2 py-1 text-xs text-gray-800 border rounded-full dark:text-white0">
-                  {skill}
+    <div className="p-6 space-y-6">
+      {/* Bouton Ajouter une offre */}
+      <div className="flex justify-end">
+      <Link to={`/home/add-offre`}>
+      <button className="flex items-center px-4 py-2 font-medium text-white transition-colors shadow-sm bg-[#2E424C] rounded-lg hover:bg-[#405c6b]">
+        <Plus size={20} className="mr-2" />
+        <span>Ajouter une offre</span>
+      </button>
+      </Link>
+      </div>
+      {/* Liste des offres */}
+      <div className="grid h-full grid-cols-1 gap-6">
+        {offers.map(offer => (
+          <div 
+            key={offer.id}
+            className="overflow-hidden transition-shadow bg-white shadow-sm cursor-pointer rounded-xl hover:shadow-md border border-[#4242425a]"
+            onClick={() => handleOfferClick(offer)}
+          >
+            <div className="p-5">
+              <div className="flex items-center mb-3">
+                <span className="px-2 py-1 text-xs font-semibold text-green-700 bg-green-100 rounded-md">
+                  Active
                 </span>
-              ))}
+                <span className="ml-auto text-sm text-slate-500">{offer.date}</span>
+              </div>
+              
+              <h2 className="mb-2 text-lg font-bold text-slate-800">{offer.title}</h2>
+              <p className="mb-4 text-sm text-slate-600 line-clamp-2">{offer.description}</p>
+              
+              <div className="flex flex-wrap gap-2 mb-5">
+                {offer.skills.map((skill, index) => (
+                  <span key={index} className="px-2 py-1 text-xs text-gray-800 border rounded-full dark:text-white0">
+                    {skill}
+                  </span>
+                ))}
+              </div>
+              
+              <div className="grid grid-cols-2 gap-y-3 gap-x-2 sm:grid-cols-4">
+                <div className="flex flex-col">
+                  <span className="text-xs font-medium text-slate-500">Budget</span>
+                  <span className="text-sm font-semibold text-slate-800">{offer.price}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-medium text-slate-500">Type</span>
+                  <span className="text-sm font-semibold text-slate-800">{offer.type}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-medium text-slate-500">Duration</span>
+                  <span className="text-sm font-semibold text-slate-800">{offer.timeline}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-medium text-slate-500">Experience</span>
+                  <span className="text-sm font-semibold text-slate-800">{offer.experience}</span>
+                </div>
+              </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-y-3 gap-x-2 sm:grid-cols-4">
-              <div className="flex flex-col">
-                <span className="text-xs font-medium text-slate-500">Budget</span>
-                <span className="text-sm font-semibold text-slate-800">{offer.price}</span>
+            <div className="flex items-center justify-between p-4 border-t bg-[#2e424c0e] from-indigo-50 to-blue-50">
+              <div className="flex items-center">
+                <Users size={18} className="text-[#2E424C]" />
+                <span className="ml-2 font-medium text-[#2E424C]">{offer.applications} applicants</span>
               </div>
-              <div className="flex flex-col">
-                <span className="text-xs font-medium text-slate-500">Type</span>
-                <span className="text-sm font-semibold text-slate-800">{offer.type}</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-xs font-medium text-slate-500">Duration</span>
-                <span className="text-sm font-semibold text-slate-800">{offer.timeline}</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-xs font-medium text-slate-500">Experience</span>
-                <span className="text-sm font-semibold text-slate-800">{offer.experience}</span>
-              </div>
+              <button className="px-3 py-1 text-xs font-medium text-[#2E424C] bg-white border border-indigo-200 rounded-lg hover:bg-indigo-50">
+                View Details
+              </button>
             </div>
           </div>
-          
-          <div className="flex items-center justify-between p-4 border-t bg-[#2e424c0e] from-indigo-50 to-blue-50">
-            <div className="flex items-center">
-              <Users size={18} className="text-[#2E424C]" />
-              <span className="ml-2 font-medium text-[#2E424C]">{offer.applications} applicants</span>
-            </div>
-            <button className="px-3 py-1 text-xs font-medium text-[#2E424C] bg-white border border-indigo-200 rounded-lg hover:bg-indigo-50">
-              View Details
-            </button>
-          </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
+  
 };
 
 export default MyOffers;
