@@ -1,7 +1,8 @@
-import jwt from 'jsonwebtoken';
-import redisClient from '../config/redisClient';
-import dotenv from 'dotenv';
-import config from '../config';
+const jwt = require('jsonwebtoken');
+const { redisClient } = require('../config/redis');
+const dotenv = require('dotenv');
+const config = require('../config');
+const { v4: uuidv4 } = require('uuid');
 
 dotenv.config();
 
@@ -37,10 +38,11 @@ const verifyAccessToken = (token) => {
  * @param userId - The ID of the user.
  * @returns The generated refresh token.
  */
-export const generateRefreshToken = async (userId) => {
+const generateRefreshToken = async (userId) => {
     const jti = uuidv4();
     const refreshToken = jwt.sign({ id: userId, jti }, config.jwtSecret, { expiresIn: '30d' });
-    await redisClient.setEx(`refresh:${jti}`, 30 * 24 * 60 * 60, userId);
+    // Use set with EX option for node-redis v4+
+    await redisClient.set(`refresh:${jti}`, 'EX', userId, { EX: 30 * 24 * 60 * 60 });
     return refreshToken;
 };
 
@@ -50,7 +52,7 @@ export const generateRefreshToken = async (userId) => {
  * @param token - The refresh token to be verified.
  * @returns The decoded token if valid, otherwise null.
  */
-export const verifyRefreshToken = async (token) => {
+const verifyRefreshToken = async (token) => {
     try {
         const decoded = jwt.verify(token, config.jwtSecret);
         const storedUserId = await redisClient.get(`refresh:${decoded.jti}`);
@@ -118,8 +120,8 @@ const generateVerificationCode = async (userId) => {
     // Generate a 6-digit numeric code
     const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Store the code in Redis with a 1-hour expiration time
-    await redisClient.setEx(`verify:${userId}`, 3600, code);
+    // Use set with EX option for node-redis v4+
+    await redisClient.set(`verify:${userId}`, 'EX', code, { EX: 3600 });
 
     return code;
 };

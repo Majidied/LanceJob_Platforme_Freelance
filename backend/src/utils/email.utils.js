@@ -1,5 +1,5 @@
-import nodemailer from 'nodemailer';
-import config from '../config';
+const nodemailer = require('nodemailer');
+const config = require('../config');
 
 /**
  * Creates a transporter for sending emails.

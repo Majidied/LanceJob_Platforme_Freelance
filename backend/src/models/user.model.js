@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 
-
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -22,6 +21,11 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['client', 'freelancer'],
     default: 'client',
+  },
+  status: {
+    type: String,
+    enum: ['ACTIVE', 'NOT_VERIFIED', 'SUSPENDED'],
+    default: 'NOT_VERIFIED',
   },
 }, {
   discriminatorKey: 'role', 
