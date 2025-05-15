@@ -5,6 +5,7 @@ const authenticateJWT = require('../middleware/auth.middleware');
 const router = express.Router();
 
 router.get('/', authenticateJWT, userController.getAllUsers);
+router.get('/me', authenticateJWT, userController.getUserByToken);
 router.get('/:id', authenticateJWT, userController.getUserById);
 router.post('/', userController.createUser);
 router.put('/:id', authenticateJWT, userController.updateUser);

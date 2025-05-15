@@ -1,5 +1,5 @@
 const User = require('../models/user.model');
-const { generateAccessToken, generateRefreshToken, verifyRefreshToken, generateVerificationCode } = require('../utils/jwt.utils');
+const { generateToken, generateVerificationCode, verifyVerificationCode } = require('../utils/jwt.utils');
 const { SendVerificationEmail } = require('../utils/email.utils');
 const bcrypt = require('bcrypt');
 
@@ -17,34 +17,22 @@ const login = async (req, res) => {
         if (!isPasswordValid) {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
-        const accessToken = generateAccessToken(user._id);
-        const refreshToken = await generateRefreshToken(user._id);
-        res.json({ accessToken, refreshToken });
+        const token = await generateToken(user.id);
+        if (!token) {
+            return res.status(500).json({ message: 'Failed to generate token' });
+        }
+        res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
     } catch (error) {
         console.error('Error during login:', error);
         res.status(500).json({ message: 'An error occurred during login' });
     }
 };
 
-const refresh = async (req, res) => {
-    try {
-        const { refreshToken } = req.body;
-        const decoded = await verifyRefreshToken(refreshToken);
-        if (!decoded) {
-            return res.status(403).json({ message: 'Invalid refresh token' });
-        }
-        const accessToken = generateAccessToken(decoded.id);
-        res.json({ accessToken });
-    } catch (error) {
-        console.error('Error during token refresh:', error);
-        res.status(500).json({ message: 'An error occurred during token refresh' });
-    }
-};
 
 const logout = async (req, res) => {
     try {
         const userId = req.user.id;
-        await redisClient.del(`refresh:${userId}`);
+        await redisClient.del(userId);
         res.json({ message: 'Logged out' });
     } catch (error) {
         console.error('Error during logout:', error);
@@ -69,7 +57,8 @@ const register = async (req, res) => {
         });
         await user.save();
         await SendVerificationEmail(email, verificationCode);
-        res.status(201).json({ message: 'User registered successfully. Please check your email for verification.' });
+        const token = generateToken(user.id);
+        res.status(201).json({ message: 'User registered successfully. Please check your email for verification.', token });
     } catch (error) {
         console.error('Error during registration:', error);
         res.status(500).json({ message: 'An error occurred during registration' });
@@ -83,12 +72,12 @@ const verifyEmail = async (req, res) => {
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
-        if (user.verificationCode !== verificationCode) {
+        if (verifyVerificationCode(user.id, verificationCode)) {
             return res.status(400).json({ message: 'Invalid verification code' });
         }
         user.isVerified = true;
-        user.verificationCode = null;
         await user.save();
+        await redisClient.del(user.id);
         res.json({ message: 'Email verified successfully' });
     } catch (error) {
         console.error('Error during email verification:', error);
@@ -107,7 +96,6 @@ const resendVerificationEmail = async (req, res) => {
             return res.status(400).json({ message: 'Email is already verified' });
         }
         const verificationCode = generateVerificationCode();
-        user.verificationCode = verificationCode;
         await user.save();
         await SendVerificationEmail(email, verificationCode);
         res.json({ message: 'Verification email resent successfully' });
@@ -174,7 +162,6 @@ const sendPasswordResetEmail = async (req, res) => {
 
 module.exports = {
     login,
-    refresh,
     logout,
     register,
     verifyEmail,

@@ -8,8 +8,6 @@ const router = express.Router();
 router.post('/register', authController.register);
 // User login
 router.post('/login', authController.login);
-// Token refresh
-router.post('/refresh', authController.refresh);
 // User logout
 router.post('/logout', authController.logout);
 // Verify email
