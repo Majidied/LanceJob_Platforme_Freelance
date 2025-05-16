@@ -54,3 +54,7 @@ exports.deleteMission = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.searchMission = async (req, res, next) => {
+  
+};
