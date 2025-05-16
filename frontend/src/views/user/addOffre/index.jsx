@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Save, Plus, ChevronLeft, ChevronRight, Check, Search, Briefcase, Clock, DollarSign, Upload, Calendar } from 'lucide-react';
+import { createMission } from '../../../api/mission';
 
 const AddOffre = () => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -9,24 +10,26 @@ const AddOffre = () => {
     // Step 1: Job Details
     title: '',
     description: '',
-    skills: [],
-    category: '',
+    tags: [],
+    //category: '',
     
     // Step 2: Project Scope
-    projectType: 'Fixed price',
+    type: 'fixe',
     budget: '',
-    duration: '',
-    expertiseLevel: 'Intermediate',
-    
+    deadline: '',
+    experience: 'intermediaire',
+    client: '663c0a5b5f1c2f7b2d765456',
+    status: 'published',
     // Step 3: Job Requirements
-    additionalRequirements: '',
-    preferredQualifications: '',
+    //additionalRequirements: '',
+    //preferredQualifications: '',
     attachments: [],
-    
+    applications:[],
+    assignedTo :null        
     // Step 4: Review and Publish
-    visibility: 'Public',
-    urgency: 'Normal',
-    location: 'Remote'
+    //visibility: 'Public',
+    //urgency: 'Normal',
+    //location: 'Remote'
   });
   
   const [newSkill, setNewSkill] = useState('');
@@ -63,7 +66,7 @@ const AddOffre = () => {
   const handleExpertiseChange = (level) => {
     setFormData({
       ...formData,
-      expertiseLevel: level
+      experience: level
     });
   };
   
@@ -78,10 +81,10 @@ const AddOffre = () => {
   
   // Add skill
   const addSkill = (skill) => {
-    if (skill && !formData.skills.includes(skill)) {
+    if (skill && !formData.tags.includes(skill)) {
       setFormData({
         ...formData,
-        skills: [...formData.skills, skill]
+        tags: [...formData.tags, skill]
       });
       setNewSkill('');
     }
@@ -91,7 +94,7 @@ const AddOffre = () => {
   const removeSkill = (skill) => {
     setFormData({
       ...formData,
-      skills: formData.skills.filter(item => item !== skill)
+      tags: formData.tags.filter(item => item !== skill)
     });
   };
   
@@ -108,11 +111,18 @@ const AddOffre = () => {
   };
   
   // Submit form
-  const handleSubmit = () => {
-    console.log("Form submitted:", formData);
-    // Here you would typically send the data to your API
-    alert("Offre ajoutée avec succès!");
-  };
+  const handleSubmit = async () => {
+  try {
+    const result = await createMission(formData);
+    console.log("Mission créée avec succès:", result);
+    alert("Offre ajoutée avec succès !");
+    // Tu peux réinitialiser le formulaire ou rediriger ici
+  } catch (error) {
+    console.error("Erreur détaillée:", error.response?.data || error.message);
+    alert("Erreur lors de la création de la mission.");
+  }
+};
+
   
   // Render step based on current step
   const renderStep = () => {
@@ -155,14 +165,14 @@ const AddOffre = () => {
                 ></textarea>
               </div>
               
-              {/* Skills Required */}
+              {/* tags Required */}
               <div>
                 <label className="block mb-1 text-sm font-medium text-gray-700">
                   Compétences requises <span className="text-red-500">*</span>
                 </label>
                 <div className="mb-3">
                   <div className="flex flex-wrap gap-2 mb-2">
-                    {formData.skills.map((skill, index) => (
+                    {formData.tags.map((skill, index) => (
                       <div key={index} className="flex items-center px-3 py-1 bg-gray-100 rounded-full">
                         <span className="text-sm text-gray-800">{skill}</span>
                         <button 
@@ -210,7 +220,7 @@ const AddOffre = () => {
               </div>
               
               {/* Job Category */}
-              <div>
+              {/*<div>
                 <label htmlFor="category" className="block mb-1 text-sm font-medium text-gray-700">
                   Catégorie <span className="text-red-500">*</span>
                 </label>
@@ -226,7 +236,7 @@ const AddOffre = () => {
                     <option key={index} value={category}>{category}</option>
                   ))}
                 </select>
-              </div>
+              </div>*/}
             </div>
           </>
         );
@@ -239,19 +249,19 @@ const AddOffre = () => {
             <div className="space-y-6">
               {/* Project Type */}
               <div>
-                <label htmlFor="projectType" className="block mb-1 text-sm font-medium text-gray-700">
+                <label htmlFor="type" className="block mb-1 text-sm font-medium text-gray-700">
                   Type de projet
                 </label>
                 <select
-                  id="projectType"
-                  name="projectType"
-                  value={formData.projectType}
+                  id="type"
+                  name="type"
+                  value={formData.type}
                   onChange={handleChange}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#417b9a] focus:border-[#417b9a]"
                 >
-                  <option value="Fixed price">Prix fixe</option>
-                  <option value="Hourly">Taux horaire</option>
-                  <option value="Long term">Long terme</option>
+                  <option value="fixe">Prix fixe</option>
+                  <option value="Taux horaire">Taux horaire</option>
+                  <option value="long terme">Long terme</option>
                 </select>
               </div>
               
@@ -278,16 +288,16 @@ const AddOffre = () => {
               
               {/* Duration */}
               <div>
-                <label htmlFor="duration" className="block mb-1 text-sm font-medium text-gray-700">
+                <label htmlFor="deadline" className="block mb-1 text-sm font-medium text-gray-700">
                   Durée estimée (jours) <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <input
-                    type="text"
-                    id="duration"
-                    name="duration"
-                    value={formData.duration}
-                    onChange={handleNumberChange}
+                    type="date"
+                    id="deadline"
+                    name="deadline"
+                    value={formData.deadline}
+                    onChange={handleChange}
                     className="w-full p-2 pl-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#417b9a] focus:border-[#417b9a]"
                     placeholder="Ex: 14"
                   />
@@ -305,22 +315,22 @@ const AddOffre = () => {
                 <div className="flex overflow-hidden border border-gray-300 rounded-md">
                   <button
                     type="button"
-                    className={`flex-1 py-2 text-center font-medium ${formData.expertiseLevel === 'Beginner' ? 'bg-[#417b9a] text-white' : 'bg-white text-gray-700'}`}
-                    onClick={() => handleExpertiseChange('Beginner')}
+                    className={`flex-1 py-2 text-center font-medium ${formData.experience === 'debutant' ? 'bg-[#417b9a] text-white' : 'bg-white text-gray-700'}`}
+                    onClick={() => handleExpertiseChange('debutant')}
                   >
                     Débutant
                   </button>
                   <button
                     type="button"
-                    className={`flex-1 py-2 text-center font-medium ${formData.expertiseLevel === 'Intermediate' ? 'bg-[#417b9a] text-white' : 'bg-white text-gray-700'}`}
-                    onClick={() => handleExpertiseChange('Intermediate')}
+                    className={`flex-1 py-2 text-center font-medium ${formData.experience === 'intermediaire' ? 'bg-[#417b9a] text-white' : 'bg-white text-gray-700'}`}
+                    onClick={() => handleExpertiseChange('intermediaire')}
                   >
                     Intermédiaire
                   </button>
                   <button
                     type="button"
-                    className={`flex-1 py-2 text-center font-medium ${formData.expertiseLevel === 'Expert' ? 'bg-[#417b9a] text-white' : 'bg-white text-gray-700'}`}
-                    onClick={() => handleExpertiseChange('Expert')}
+                    className={`flex-1 py-2 text-center font-medium ${formData.experience === 'expert' ? 'bg-[#417b9a] text-white' : 'bg-white text-gray-700'}`}
+                    onClick={() => handleExpertiseChange('expert')}
                   >
                     Expert
                   </button>
@@ -414,7 +424,7 @@ const AddOffre = () => {
                   
                   <div>
                     <p className="text-sm font-medium text-gray-500">Type de projet</p>
-                    <p className="text-gray-800">{formData.projectType === "Fixed price" ? "Prix fixe" : formData.projectType === "Hourly" ? "Taux horaire" : "Long terme"}</p>
+                    <p className="text-gray-800">{formData.type === "fixe" ? "Prix fixe" : formData.type === "Taux horaire" ? "Taux horaire" : "long terme"}</p>
                   </div>
                   
                   <div>
@@ -424,14 +434,14 @@ const AddOffre = () => {
                   
                   <div>
                     <p className="text-sm font-medium text-gray-500">Durée</p>
-                    <p className="text-gray-800">{formData.duration ? `${formData.duration} jours` : "Non spécifiée"}</p>
+                    <p className="text-gray-800">{formData.deadline ? `${formData.deadline}` : "Non spécifiée"}</p>
                   </div>
                   
                   <div>
                     <p className="text-sm font-medium text-gray-500">Niveau d'expertise</p>
                     <p className="text-gray-800">
-                      {formData.expertiseLevel === "Beginner" ? "Débutant" : 
-                       formData.expertiseLevel === "Intermediate" ? "Intermédiaire" : "Expert"}
+                      {formData.experience === "Beginner" ? "Débutant" : 
+                       formData.experience === "Intermediate" ? "Intermédiaire" : "Expert"}
                     </p>
                   </div>
                 </div>
@@ -439,7 +449,7 @@ const AddOffre = () => {
                 <div>
                   <p className="text-sm font-medium text-gray-500">Compétences requises</p>
                   <div className="flex flex-wrap gap-2 mt-1">
-                    {formData.skills.length > 0 ? formData.skills.map((skill, index) => (
+                    {formData.tags.length > 0 ? formData.tags.map((skill, index) => (
                       <span key={index} className="px-3 py-1 text-sm text-gray-800 bg-gray-100 rounded-full">
                         {skill}
                       </span>

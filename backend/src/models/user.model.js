@@ -23,6 +23,11 @@ const userSchema = new mongoose.Schema({
     enum: ['client', 'freelancer'],
     default: 'client',
   },
+  status: {
+    type: String,
+    enum: ['activate', 'not_verified', 'suspended'],
+  },
+
 }, {
   discriminatorKey: 'role', 
   timestamps: true 
