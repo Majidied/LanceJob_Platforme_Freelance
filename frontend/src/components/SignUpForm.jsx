@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
+import useUser from '../hooks/useUser';
 
 const SignUpForm = () => {
   const [role, setRole] = useState('Freelancer');
@@ -13,6 +14,9 @@ const SignUpForm = () => {
     agreedToTerms: false
   });
   const [errors, setErrors] = useState({});
+  
+  // Use the hooks from useUser
+  const { registerUser, isRegisterPending, isRegisterError, registerError } = useUser();
 
   // Fonction pour injecter les styles directement
   const injectStyles = () => {
@@ -193,6 +197,11 @@ const SignUpForm = () => {
           background-color: #2A5269;
         }
         
+        .create-button:disabled {
+          background-color: #A4B2B3;
+          cursor: not-allowed;
+        }
+        
         .login-text {
           text-align: center;
           color: #37505D;
@@ -203,6 +212,21 @@ const SignUpForm = () => {
           color: #33647E;
           font-weight: 600;
           text-decoration: none;
+        }
+        
+        .spinner {
+          display: inline-block;
+          width: 20px;
+          height: 20px;
+          border: 3px solid rgba(255,255,255,.3);
+          border-radius: 50%;
+          border-top-color: white;
+          animation: spin 1s ease-in-out infinite;
+          margin-left: 8px;
+        }
+        
+        @keyframes spin {
+          to { transform: rotate(360deg); }
         }
       `}} />
     );
@@ -255,10 +279,10 @@ const SignUpForm = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-const handleSubmit = async () => {
+  const handleSubmit = async () => {
     if (validateForm()) {
       try {
-        // Préparer les données au format JSON
+        // Prepare user data for registration
         const userData = {
           firstName: formData.firstName,
           lastName: formData.lastName,
@@ -270,38 +294,18 @@ const handleSubmit = async () => {
 
         console.log('Submitting user data:', JSON.stringify(userData));
         
-        // Appel API réel
-        // Décommentez ce bloc pour l'intégration avec votre backend
-        /* 
-        const response = await fetch('/api/users/register', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(userData),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Registration failed');
-        }
-
-        const data = await response.json();
-        console.log('Registration successful:', data);
-        */
+        // Call the registerUser function from useUser hook
+        await registerUser(userData);
         
-        // Simulation d'un délai de traitement
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Stocker l'email pour la page de vérification (vous pouvez l'adapter selon votre architecture)
+        // If registration is successful, store email for verification page
         localStorage.setItem('verificationEmail', formData.email);
         
-        // Redirection vers la page de vérification d'email
+        // Redirect to verification page
         window.location.href = `/verify-email?email=${encodeURIComponent(formData.email)}`;
         
       } catch (error) {
         console.error('Registration error:', error);
-        alert(error.message || 'Registration failed. Please try again.');
+        // The error is already handled by the useUser hook via isRegisterError and registerError
       }
     }
   };
@@ -339,6 +343,13 @@ const handleSubmit = async () => {
             )}
           </span>
         </h2>
+
+        {/* Show general error message if registration failed */}
+        {isRegisterError && (
+          <div className="error-message" style={{ textAlign: 'center', marginBottom: '15px' }}>
+            {registerError || 'Registration failed. Please try again.'}
+          </div>
+        )}
 
         <div className="form-row">
           <div>
@@ -405,67 +416,73 @@ const handleSubmit = async () => {
         </div>
         
         <div className="terms-container">
-  {/* Case à cocher réelle mais invisible */}
-  <input
-    id="terms-checkbox"
-    type="checkbox"
-    name="agreedToTerms"
-    checked={formData.agreedToTerms}
-    onChange={handleChange}
-    style={{ 
-      position: 'absolute', 
-      opacity: 0,
-      width: 0,
-      height: 0
-    }}
-  />
-  
-  {/* Case à cocher visuelle personnalisée */}
-  <div 
-    onClick={() => setFormData(prev => ({ ...prev, agreedToTerms: !prev.agreedToTerms }))}
-    style={{ 
-      width: '25px',
-      height: '18px',
-      borderRadius: '4px',
-      border: '1px solid #33647E',
-      backgroundColor: formData.agreedToTerms ? '#33647E' : 'white',
-      marginRight: '8px',
-      marginTop: '2px',
-      cursor: 'pointer',
-      position: 'relative'
-    }}
-  >
-    {formData.agreedToTerms && (
-      <span style={{
-        content: "''",
-        position: 'absolute',
-        display: 'block',
-        left: '6px',
-        top: '2px',
-        width: '5px',
-        height: '10px',
-        border: 'solid white',
-        borderWidth: '0 2px 2px 0',
-        transform: 'rotate(45deg)'
-      }}></span>
-    )}
-  </div>
-  
-  {/* Texte des conditions */}
-  <div className="terms-text" onClick={() => setFormData(prev => ({ ...prev, agreedToTerms: !prev.agreedToTerms }))}>
-    Yes, I understand and agree to the{' '}
-    <a href="#" className="terms-link" onClick={(e) => e.stopPropagation()}>Terms of Service</a>, including the{' '}
-    <a href="#" className="terms-link" onClick={(e) => e.stopPropagation()}>userAgreement</a> and{' '}
-    <a href="#" className="terms-link" onClick={(e) => e.stopPropagation()}>PrivacyPolicy</a>.
-  </div>
-</div>
+          {/* Real checkbox but invisible */}
+          <input
+            id="terms-checkbox"
+            type="checkbox"
+            name="agreedToTerms"
+            checked={formData.agreedToTerms}
+            onChange={handleChange}
+            style={{ 
+              position: 'absolute', 
+              opacity: 0,
+              width: 0,
+              height: 0
+            }}
+          />
+          
+          {/* Custom visual checkbox */}
+          <div 
+            onClick={() => setFormData(prev => ({ ...prev, agreedToTerms: !prev.agreedToTerms }))}
+            style={{ 
+              width: '25px',
+              height: '18px',
+              borderRadius: '4px',
+              border: '1px solid #33647E',
+              backgroundColor: formData.agreedToTerms ? '#33647E' : 'white',
+              marginRight: '8px',
+              marginTop: '2px',
+              cursor: 'pointer',
+              position: 'relative'
+            }}
+          >
+            {formData.agreedToTerms && (
+              <span style={{
+                content: "''",
+                position: 'absolute',
+                display: 'block',
+                left: '6px',
+                top: '2px',
+                width: '5px',
+                height: '10px',
+                border: 'solid white',
+                borderWidth: '0 2px 2px 0',
+                transform: 'rotate(45deg)'
+              }}></span>
+            )}
+          </div>
+          
+          {/* Terms text */}
+          <div className="terms-text" onClick={() => setFormData(prev => ({ ...prev, agreedToTerms: !prev.agreedToTerms }))}>
+            Yes, I understand and agree to the{' '}
+            <a href="#" className="terms-link" onClick={(e) => e.stopPropagation()}>Terms of Service</a>, including the{' '}
+            <a href="#" className="terms-link" onClick={(e) => e.stopPropagation()}>userAgreement</a> and{' '}
+            <a href="#" className="terms-link" onClick={(e) => e.stopPropagation()}>PrivacyPolicy</a>.
+          </div>
+        </div>
         {errors.agreedToTerms && <p className="error-message" style={{ marginTop: '-15px', marginBottom: '15px' }}>{errors.agreedToTerms}</p>}
         
         <button
           onClick={handleSubmit}
           className="create-button"
+          disabled={isRegisterPending}
         >
-          Create
+          {isRegisterPending ? (
+            <>
+              Creating Account
+              <span className="spinner"></span>
+            </>
+          ) : "Create"}
         </button>
         
         <div className="login-text">

@@ -156,7 +156,6 @@ const ProfileSetup = () => {
   };
 
   return (
-    <ChakraProvider>
       <Container maxW="container.lg" p={4}>
         <Grid
           templateRows="10vh 70vh 10vh"
@@ -274,7 +273,6 @@ const ProfileSetup = () => {
           </ModalContent>
         </Modal>
       </Container>
-    </ChakraProvider>
   );
 };
 

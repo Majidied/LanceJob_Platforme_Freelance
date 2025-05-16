@@ -1,16 +1,46 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import useUser from '../hooks/useUser';
+import useNotification from '../hooks/useNotification';
+import RoundButton from '../components/Button';
+
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
+  const { loginUser, isLoginPending, isLoginError, loginError } = useUser();
+  const notify = useNotification();
 
-  const handleLogin = () => {
-    console.log('Login with:', { email, password, rememberMe });
-    // Ajoutez votre logique d'authentification ici
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    
+    try {
+      await loginUser({ email, password });
+      
+      // Show success notification
+      notify({
+        status: 'success',
+        title: 'Login successful',
+        description: 'Welcome back!',
+      });
+      
+      // Redirect after successful login
+      navigate('/');
+    } catch (err) {
+      // Show error notification
+      notify({
+        status: 'error',
+        title: 'Login failed',
+        description: err?.message || loginError || 'An error occurred during login.',
+      });
+      
+      console.error('Login failed:', err);
+    }
   };
+
   const handleForgotPassword = (e) => {
     e.preventDefault();
     navigate('/forgot-password');
@@ -21,10 +51,10 @@ const LoginPage = () => {
     navigate('/register');
   };
 
-  // Cette fonction injecte du CSS directement, garantissant que les styles fonctionnent
   const injectStyles = () => {
     return (
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         body, html {
           margin: 0;
           padding: 0;
@@ -36,7 +66,6 @@ const LoginPage = () => {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
           background-color: white;
         }
-        
         #login-card {
           width: 480px;
           background-color: #EBF6F7;
@@ -44,7 +73,6 @@ const LoginPage = () => {
           border-radius: 16px;
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
         }
-        
         .login-title {
           text-align: center;
           margin-bottom: 40px;
@@ -57,18 +85,15 @@ const LoginPage = () => {
           align-items: center;
           gap: 10px;
         }
-        
         .form-group {
           margin-bottom: 25px;
         }
-        
         .form-label {
           display: block;
           margin-bottom: 10px;
           color: #A4B2B3;
           font-size: 1rem;
         }
-        
         .form-input {
           width: 100%;
           padding: 14px 16px;
@@ -78,19 +103,16 @@ const LoginPage = () => {
           font-size: 0.875rem;
           box-sizing: border-box;
         }
-        
         .checkbox-row {
           display: flex;
           justify-content: space-between;
           align-items: center;
           margin-bottom: 30px;
         }
-        
         .remember-container {
           display: flex;
           align-items: center;
         }
-        
         .custom-checkbox {
           width: 18px;
           height: 18px;
@@ -102,7 +124,6 @@ const LoginPage = () => {
           cursor: pointer;
           margin-right: 8px;
         }
-        
         .custom-checkbox::after {
           content: "";
           position: absolute;
@@ -115,18 +136,15 @@ const LoginPage = () => {
           border-width: 0 2px 2px 0;
           transform: rotate(45deg);
         }
-        
         .checkbox-label {
           color: #37505D;
           font-size: 0.875rem;
         }
-        
         .forget-link {
           color: #37505D;
           text-decoration: none;
           font-size: 0.875rem;
         }
-        
         .login-button {
           display: block;
           width: 200px;
@@ -140,33 +158,26 @@ const LoginPage = () => {
           cursor: pointer;
           margin: 0 auto 30px;
         }
-        
         .signup-text {
           text-align: center;
           color: #37505D;
           font-size: 0.875rem;
         }
-        
         .signup-link {
           color: #33647E;
           font-weight: 600;
           text-decoration: none;
         }
-        
         .form-input:focus {
           outline: none;
           border-color: #33647E;
         }
-        
         .login-button:hover {
           background-color: #2A5269;
         }
-        
-        /* Styles pour correspondre exactement à la maquette */
         .form-input {
           box-shadow: none;
         }
-        
         .hidden-checkbox {
           position: absolute;
           opacity: 0;
@@ -181,11 +192,11 @@ const LoginPage = () => {
   return (
     <>
       {injectStyles()}
-      <div id="login-card">
+      <form id="login-card" onSubmit={handleLogin}>
         <h2 className="login-title">
           Welcome back <span role="img" aria-label="celebration">🎉</span>
         </h2>
-        
+
         <div className="form-group">
           <label className="form-label">Email</label>
           <input
@@ -194,9 +205,10 @@ const LoginPage = () => {
             onChange={(e) => setEmail(e.target.value)}
             className="form-input"
             placeholder=""
+            required
           />
         </div>
-        
+
         <div className="form-group">
           <label className="form-label">Password</label>
           <input
@@ -205,9 +217,10 @@ const LoginPage = () => {
             onChange={(e) => setPassword(e.target.value)}
             className="form-input"
             placeholder=""
+            required
           />
         </div>
-        
+
         <div className="checkbox-row">
           <div className="remember-container">
             <input
@@ -222,24 +235,29 @@ const LoginPage = () => {
               <span className="checkbox-label">Remember me</span>
             </label>
           </div>
-          
-          <a 
-  href="#" 
-  onClick={handleForgotPassword}
-  className="forget-link"
->
-  Forget password?
-</a>
+
+          <a
+            href="#"
+            onClick={handleForgotPassword}
+            className="forget-link"
+          >
+            Forget password?
+          </a>
         </div>
+
+        <RoundButton
+          type="submit"
+          className="login-button"
+          isLoading={isLoginPending}
+          isDisabled={isLoginPending}
+          title="Login"
+        />
         
-        <button onClick={handleLogin} className="login-button">
-          Login
-        </button>
-        
+
         <div className="signup-text">
           Don't have an account? <a href="#" onClick={handleSignUp} className="signup-link">Sign up</a>
         </div>
-      </div>
+      </form>
     </>
   );
 };

@@ -1,4 +1,5 @@
 const User = require('../models/user.model');
+const jwtUtils = require('../utils/jwt.utils');
 
 exports.getAllUsers = async () => {
   return await User.find({});
@@ -20,3 +21,9 @@ exports.updateUser = async (id, userData) => {
 exports.deleteUser = async (id) => {
   return await User.findByIdAndDelete(id);
 };
+
+exports.getUserByToken = async (token) => {
+  // Assuming you have a method to decode the token and get user ID
+  const userId = jwtUtils.getUserIdByToken(token);
+  return await User.findById(userId);
+}
