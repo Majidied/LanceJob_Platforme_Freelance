@@ -10,7 +10,7 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
-  const { loginUser, isLoginPending, isLoginError, loginError } = useUser();
+  const { loginUser, isLoginPending, loginError } = useUser();
   const notify = useNotification();
 
 

@@ -117,7 +117,7 @@ export const useUser = () => {
         isLoginPending,
         isLoginError,
         loginError,
-        registerUser: (email, password) => registerUser({ email, password }),
+        registerUser,
         isRegistringPending,
         RegistringError,
         isRegistringError,
