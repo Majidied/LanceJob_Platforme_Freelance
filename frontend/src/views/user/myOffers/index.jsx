@@ -211,7 +211,7 @@ const fetchFreelancers = async () => {
     <div className="p-6 space-y-6">
       {/* Bouton Ajouter une offre */}
       <div className="flex justify-end">
-      <Link to={`/home/add-offre`}>
+      <Link to={`/user/add-offre`}>
       <button className="flex items-center px-4 py-2 font-medium text-white transition-colors shadow-sm bg-[#2E424C] rounded-lg hover:bg-[#405c6b]">
         <Plus size={20} className="mr-2" />
         <span>Ajouter une offre</span>

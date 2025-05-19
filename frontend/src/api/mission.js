@@ -1,8 +1,5 @@
-import axios from 'axios';
+import api from "./api";
 
-const api = axios.create({
-  baseURL: 'http://localhost:5000/api', 
-});
 
 export const fetchMissions = async () => {
   const response = await api.get('/mission');

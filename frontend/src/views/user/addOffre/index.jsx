@@ -1,10 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { X, Save, Plus, ChevronLeft, ChevronRight, Check, Search, Briefcase, Clock, DollarSign, Upload, Calendar } from 'lucide-react';
 import { createMission } from '../../../api/mission';
 
 const AddOffre = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 4;
+  const fileInputRef = useRef(null);
+  const [fileName, setFileName] = useState("");
+  const [filePath, setFilePath] = useState(""); // Simule le "chemin" côté client
+
+
   
   const [formData, setFormData] = useState({
     // Step 1: Job Details
@@ -31,6 +36,28 @@ const AddOffre = () => {
     //urgency: 'Normal',
     //location: 'Remote'
   });
+  
+  const handleFileChange = (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    const name = file.name;
+    const path = URL.createObjectURL(file);
+
+    setFileName(name);
+    setFilePath(path);
+
+    // Met à jour formData.attachments
+    setFormData(prev => ({
+      ...prev,
+      attachments: [
+        {
+          fileName: name,
+          filePath: path
+        }
+      ]
+    }));
+  }
+};
   
   const [newSkill, setNewSkill] = useState('');
   
@@ -389,12 +416,25 @@ const AddOffre = () => {
                     <p className="text-sm text-gray-500">Glissez-déposez vos fichiers ici ou</p>
                     <button
                       type="button"
+                      onClick={() => fileInputRef.current.click()}
                       className="px-4 py-2 text-sm font-medium text-[#417b9a] hover:text-[#293b46]"
                     >
                       Parcourir les fichiers
                     </button>
-                    <input type="file" className="hidden" multiple />
+                     <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        className="hidden"
+                        accept=".pdf,.doc,.docx,.jpg,.png"
+                      />
                     <p className="text-xs text-gray-400">Formats acceptés: PDF, DOC, DOCX, JPG, PNG (max 5 MB)</p>
+                    {fileName && (
+                        <div className="mt-4 text-sm text-gray-700">
+                          <p><strong>Nom du fichier :</strong> {fileName}</p>
+                          <p><strong>Chemin (temporaire) :</strong> {filePath}</p>
+                        </div>
+                      )}
                   </div>
                 </div>
               </div>
