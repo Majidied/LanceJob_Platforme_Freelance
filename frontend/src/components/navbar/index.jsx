@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import Dropdown from "../../components/dropdown";
+import Dropdown from "../dropdown";
 import { FiAlignJustify } from "react-icons/fi";
 import { BsArrowBarUp } from "react-icons/bs";
 import { FiSearch } from "react-icons/fi";

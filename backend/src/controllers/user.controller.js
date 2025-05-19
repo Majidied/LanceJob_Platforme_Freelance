@@ -9,6 +9,28 @@ exports.getAllUsers = async (req, res, next) => {
   }
 };
 
+exports.getUserByToken = async (req, res, next) => {
+  try {
+    const token = req.headers['authorization']?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    const user = await userService.getUserByToken(token);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const userData = {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    };
+    res.status(200).json({ data: userData });
+  } catch (error) {
+    next(error);
+  }
+}
+
 exports.getUserById = async (req, res, next) => {
   try {
     const user = await userService.getUserById(req.params.id);
