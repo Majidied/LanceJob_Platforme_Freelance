@@ -1,15 +1,36 @@
 const mongoose = require('mongoose');
-
+const applicantSchema = new mongoose.Schema({
+  freelancer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',  
+    required: true
+  },
+  applicationDate: {
+    type: Date,
+    default: Date.now
+  },
+  message: {
+    type: String,
+    default: ""
+  },
+  proposedPrice: {
+    type: Number
+  },
+  proposedDuration: {
+    type: Date
+  },
+  status: {
+    type: String,
+    enum: ['pending', 'accepted', 'rejected'],
+    default: 'pending'
+  }
+});
 const attachmentSchema = new mongoose.Schema({
   fileName: {
     type: String,
     required: true
   },
   filePath: {
-    type: String,
-    required: true
-  },
-  fileType: {
     type: String,
     required: true
   },
@@ -58,7 +79,16 @@ const missionSchema = new mongoose.Schema({
     enum: ['debutant', 'intermediaire', 'expert'],
     required: true
   },
-  attachments: [attachmentSchema]
+  attachments: [attachmentSchema],
+  applications: [applicantSchema],
+  assignedTo: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: 'User',  
+  default: null
+}
+  
 }, { timestamps: true });
+
+
 
 module.exports  = mongoose.model('Mission', missionSchema);
