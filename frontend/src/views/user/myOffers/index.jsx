@@ -15,8 +15,11 @@ const MyOffers = () => {
     const missionsArray = Array.isArray(response) 
       ? response 
       : (response?.data || response?.missions || Object.values(response || {}));
-      
-    setOffers(missionsArray.map(mission => ({
+    const filteredMissions = missionsArray.filter(
+      mission => mission.client === "663c0a5b5f1c2f7b2d765456"
+    );
+    
+    setOffers(filteredMissions.map(mission => ({
       ...mission,
       applications: mission.applications || []
     })));
