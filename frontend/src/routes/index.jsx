@@ -6,6 +6,11 @@ import LoginPage from '../pages/LoginPage';
 import RegisterPage from '../pages/RegisterPage';
 import Userayout from "../pages/user";
 import FreelancerLayout from "../pages/freelancer";
+import JobsList from './components/jobs/JobsList';
+import JobDetail from './components/jobs/JobDetail';
+import SavedJobs from './components/jobs/SavedJobs';
+import Applications from './components/applications/Applications';
+import Offers from './components/offers/Offers';
 
 const Routes = () => {
   // Simulate token retrieval from local storage
