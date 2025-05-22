@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useFreelancer } from '../../context/FreelancerContext';
-import { freelancerAPI } from '../../services/api';
+import { freelancerAPI } from '../../api';
 
 const JobDetail = () => {
   const { id } = useParams();

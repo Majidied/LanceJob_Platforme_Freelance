@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 // Notez le préfixe VITE_
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 // Créer une instance axios
 const api = axios.create({
@@ -9,7 +9,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // Pour les cookies de session
+  //withCredentials: true, // Pour les cookies de session
 })
 
 // Intercepteur pour ajouter le token JWT aux requêtes

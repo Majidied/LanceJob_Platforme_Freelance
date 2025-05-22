@@ -1,24 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../../context/AuthContext'; // Nouveau import
 import avatar from "../../../assets/img/profile/banner.png";
+import { userAPI } from '../../../api'; // Nouveau import
 
 const Profile = () => {
+  const { user } = useAuth(); // Récupérer l'utilisateur connecté
+  const [loading, setLoading] = useState(true);
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState('');
+
+  // État du profil
   const [profileData, setProfileData] = useState({
-    firstName: "Musharof",
-    lastName: "Chowdhury",
-    title: "Team Manager",
-    location: "Arizona, United States",
-    email: "randomuser@pimjo.com",
-    phone: "+09 363 398 46",
-    bio: "Team Manager",
-    description: "Designer et développeur web avec plus de 5 ans d'expérience dans la création d'interfaces utilisateur modernes et réactives. Spécialisé dans les technologies front-end et passionné par l'expérience utilisateur.",
-    skills: ["UI/UX Design", "React", "Tailwind CSS", "JavaScript", "Node.js", "Figma", "Adobe XD", "Responsive Design"],
-    hourlyRate: "45",
+    firstName: "",
+    lastName: "",
+    title: "",
+    location: "",
+    email: "",
+    phone: "",
+    bio: "",
+    description: "",
+    skills: [],
+    hourlyRate: "0",
     address: {
-      street: "123 Tech Avenue",
-      city: "Phoenix",
-      state: "Arizona",
-      country: "United States",
-      zipCode: "85001"
+      street: "",
+      city: "",
+      state: "",
+      country: "",
+      zipCode: ""
     }
   });
 
@@ -38,6 +47,72 @@ const Profile = () => {
   // État pour la gestion des compétences pendant l'édition
   const [newSkill, setNewSkill] = useState("");
 
+  // Charger les données du profil depuis l'API
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      try {
+        setLoading(true);
+        // Si vous avez déjà les données dans user, pas besoin de faire un appel API supplémentaire
+        if (user) {
+          // Adapter les données utilisateur au format du profil
+          const userData = {
+            firstName: user.name ? user.name.split(' ')[0] : '',
+            lastName: user.name ? user.name.split(' ')[1] || '' : '',
+            title: user.title || '',
+            location: user.address ? `${user.address}` : '',
+            email: user.email || '',
+            phone: user.phone || '',
+            bio: user.bio || '',
+            description: user.bio || '', // Utilisez bio comme description si nécessaire
+            skills: user.skills || [],
+            hourlyRate: "45", // Valeur par défaut ou depuis user si disponible
+            address: {
+              street: "",
+              city: "",
+              state: "",
+              country: "",
+              zipCode: ""
+            }
+          };
+          
+          // Si vous avez plus de détails d'adresse dans votre modèle, adaptez-les ici
+          if (user.address) {
+            // Exemple: décomposer l'adresse si c'est une chaîne
+            // Ou utiliser directement les champs si votre modèle utilisateur a une structure d'adresse
+          }
+          
+          setProfileData(userData);
+          setTempData(userData);
+        } else {
+          // Récupérer les données du profil depuis l'API si nécessaire
+          const response = await userAPI.getUserProfile();
+          
+          // Adapter les données de l'API au format du profil
+          // Ceci dépend de la structure de votre API
+          const apiData = response.data.data;
+          
+          // Exemple de conversion (à adapter selon votre API)
+          const formattedData = {
+            firstName: apiData.name ? apiData.name.split(' ')[0] : '',
+            lastName: apiData.name ? apiData.name.split(' ')[1] || '' : '',
+            // Continuer avec les autres champs...
+          };
+          
+          setProfileData(formattedData);
+          setTempData(formattedData);
+        }
+        
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching profile:', err);
+        setError(err.response?.data?.message || 'Failed to load profile data');
+        setLoading(false);
+      }
+    };
+    
+    fetchProfileData();
+  }, [user]);
+
   // Fonction pour commencer l'édition d'une section
   const startEditing = (section) => {
     setTempData({...profileData});
@@ -50,9 +125,67 @@ const Profile = () => {
   };
 
   // Fonction pour sauvegarder les modifications
-  const saveChanges = (section) => {
-    setProfileData({...profileData, ...tempData});
-    setEditingSections({...editingSections, [section]: false});
+  const saveChanges = async (section) => {
+    try {
+      setSaveLoading(true);
+      
+      // Préparer les données à envoyer à l'API
+      let dataToSave = {};
+      
+      // En fonction de la section, préparer les données appropriées
+      if (section === 'profile') {
+        dataToSave = {
+          name: `${tempData.firstName} ${tempData.lastName}`,
+          title: tempData.title,
+          // Autres champs...
+        };
+      } else if (section === 'personal') {
+        dataToSave = {
+          name: `${tempData.firstName} ${tempData.lastName}`,
+          email: tempData.email,
+          phone: tempData.phone,
+          bio: tempData.bio,
+        };
+      } else if (section === 'description') {
+        dataToSave = {
+          bio: tempData.description, // Adapter selon votre modèle de données
+        };
+      } else if (section === 'skills') {
+        dataToSave = {
+          skills: tempData.skills,
+        };
+      } else if (section === 'hourlyRate') {
+        dataToSave = {
+          hourlyRate: tempData.hourlyRate,
+        };
+      } else if (section === 'address') {
+        dataToSave = {
+          address: tempData.address.street + 
+                  (tempData.address.city ? `, ${tempData.address.city}` : '') +
+                  (tempData.address.state ? `, ${tempData.address.state}` : '') +
+                  (tempData.address.zipCode ? ` ${tempData.address.zipCode}` : '') +
+                  (tempData.address.country ? `, ${tempData.address.country}` : ''),
+        };
+      }
+      
+      // Envoyer les données à l'API
+      await userAPI.updateUserProfile(dataToSave);
+      
+      // Mettre à jour l'état local
+      setProfileData({...profileData, ...tempData});
+      setEditingSections({...editingSections, [section]: false});
+      
+      // Afficher un message de succès
+      setSuccessMessage('Profile updated successfully!');
+      setTimeout(() => setSuccessMessage(''), 3000); // Effacer le message après 3 secondes
+      
+    } catch (err) {
+      console.error('Error updating profile:', err);
+      setError(err.response?.data?.message || 'Failed to update profile');
+      setTimeout(() => setError(null), 3000); // Effacer l'erreur après 3 secondes
+    } finally {
+      setSaveLoading(false);
+    }
   };
 
   // Gestion des changements dans les formulaires

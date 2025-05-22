@@ -1,6 +1,6 @@
 const express = require('express');
 const freelancerController = require('../controllers/freelancer.controller');
-const { authenticate } = require('../middleware/auth'); //to add later 
+const { authenticate } = require('../middleware/auth.middleware'); //to add later 
 
 const router = express.Router();
 

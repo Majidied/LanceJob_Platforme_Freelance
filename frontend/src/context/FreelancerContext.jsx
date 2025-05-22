@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { freelancerAPI } from '../services/api';
+import { freelancerAPI } from '../api';
 import { AuthContext } from './AuthContext'; // Assuming you have an AuthContext
 
 export const FreelancerContext = createContext();

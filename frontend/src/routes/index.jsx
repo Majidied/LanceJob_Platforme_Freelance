@@ -6,11 +6,18 @@ import LoginPage from '../pages/LoginPage';
 import RegisterPage from '../pages/RegisterPage';
 import Userayout from "../pages/user";
 import FreelancerLayout from "../pages/freelancer";
-import JobsList from './components/jobs/JobsList';
-import JobDetail from './components/jobs/JobDetail';
-import SavedJobs from './components/jobs/SavedJobs';
-import Applications from './components/applications/Applications';
-import Offers from './components/offers/Offers';
+
+// Changez ces imports pour pointer vers les bons dossiers
+//import JobsList from '../components/jobs/JobsList';  // Notez le changement de './' à '../'
+import JobDetail from '../components/jobs/JobDetail'; // Notez le changement de './' à '../'
+//import SavedJobs from '../components/jobs/SavedJobs'; // Notez le changement de './' à '../'
+import Applications from '../components/applications/Applications'; // Notez le changement de './' à '../'
+//import Offers from '../components/offers/Offers';
+// Premier groupe d'imports (depuis views)
+import JobsList from '../views/freelancer/home';
+import SavedJobs from '../views/freelancer/savedJobs';
+import Offers from '../views/freelancer/offers';
+import Profile from '../views/freelancer/profile';
 
 const Routes = () => {
   // Simulate token retrieval from local storage
@@ -18,6 +25,10 @@ const Routes = () => {
 
   // Define public routes accessible to all users
   const routesForPublic = [
+    {
+      path: '/',
+      element: <Navigate to="/landing" />,
+    },
     {
       path: '/landing',
       element: <Landing />,
@@ -41,6 +52,16 @@ const Routes = () => {
     {
       path: "/freelancer/*",
       element: <FreelancerLayout />,
+      children: [
+        { path: "", element: <Navigate to="jobs" /> }, // Redirection par défaut
+        { path: "jobs", element: <JobsList /> },
+        { path: "jobs/:id", element: <JobDetail /> },
+        { path: "saved-jobs", element: <SavedJobs /> },
+        { path: "applications", element: <Applications /> },
+        { path: "offers", element: <Offers /> },
+        { path: "profile", element: <Profile /> }
+      ]
+    
     },
   ];
 
