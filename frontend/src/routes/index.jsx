@@ -23,6 +23,9 @@ const Routes = () => {
       path: 'complete-profile',
       element: <ProfileSetup />,
     },
+    {
+      path: '/',
+    },
     ...(!isFreelancer
       ? [{ path: "user/*", element: <Userayout /> }]
       : [{ path: "user/*", element: <Navigate to="/freelancer" /> }]),
