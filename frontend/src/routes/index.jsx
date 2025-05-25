@@ -1,77 +1,66 @@
 import { RouterProvider, createBrowserRouter, Navigate } from 'react-router-dom';
 import Landing from '../pages/landing';
 import ProfileSetup from '../pages/Profile.page';
-
 import LoginPage from '../pages/LoginPage';
 import RegisterPage from '../pages/RegisterPage';
 import Userayout from "../pages/user";
 import FreelancerLayout from "../pages/freelancer";
+import { hasAccessToken, getUserData } from '../utils/tokenStorage';
+import { ProtectedRoute } from './ProtectedRoute';
 
 const Routes = () => {
-  // Simulate token retrieval from local storage
-  const token = false;
+  const userData = getUserData();
+  const isFreelancer = userData?.isFreelancer || false;
 
-  // Define public routes accessible to all users
   const routesForPublic = [
+    { path: '/', element: <Landing /> },
+    { path: '/service', element: <div>Service Page</div> },
+    { path: '/about-us', element: <div>About Us</div> }
+  ];
+
+  const authenticatedChildren = [
     {
-      path: '/landing',
-      element: <Landing />,
-    },
-    {
-      path: '/service',
-      element: <div>Service Page</div>,
-    },
-    {
-      path: '/about-us',
-      element: <div>About Us</div>,
-    },
-    {
-      path: '/complete-profile',
+      path: 'complete-profile',
       element: <ProfileSetup />,
     },
+    ...(!isFreelancer
+      ? [{ path: "user/*", element: <Userayout /> }]
+      : [{ path: "user/*", element: <Navigate to="/freelancer" /> }]),
+    ...(isFreelancer
+      ? [{ path: "freelancer/*", element: <FreelancerLayout /> }]
+      : [{ path: "freelancer/*", element: <Navigate to="/user" /> }]),
+  ];
+
+  const routesForAuthenticatedOnly = [
     {
-      path: "/user/*",
-      element: <Userayout />,
-    },
-    {
-      path: "/freelancer/*",
-      element: <FreelancerLayout />,
+      path: '/',
+      element: <ProtectedRoute />,
+      children: authenticatedChildren,
     },
   ];
 
-  // Define routes accessible only to non-authenticated users
   const routesForNotAuthenticatedOnly = [
-    {
-      path: '/login',
-      element: <LoginPage />,
-    },
-    {
-      path: '/register',
-      element: <RegisterPage />,
-    },
+    { path: '/login', element: <LoginPage /> },
+    { path: '/register', element: <RegisterPage /> },
   ];
 
-  // Define the 404 Not Found route
   const notFoundRoute = [
-    {
-      path: '*',
-      element: <div>404 Not Found</div>,
-    },
+    { path: '*', element: <div>404 Not Found</div> },
   ];
 
-  // Combine and conditionally include routes based on authentication status
   const router = createBrowserRouter([
     ...routesForPublic,
-    ...(!token ? routesForNotAuthenticatedOnly : [
-      ...['/login', '/register'].map(path => ({
-        path,
-        element: <Navigate to="/" />,
-      })),
-    ]),
-    ...notFoundRoute, // Include the 404 route last
+    ...(!hasAccessToken()
+      ? routesForNotAuthenticatedOnly
+      : ['/login', '/register'].map(path => ({
+          path,
+          element: <Navigate to="/" />,
+        }))
+    ),
+    ...routesForAuthenticatedOnly,
+    ...notFoundRoute,
   ]);
 
-  // Provide the router configuration using RouterProvider
   return <RouterProvider router={router} />;
 };
 

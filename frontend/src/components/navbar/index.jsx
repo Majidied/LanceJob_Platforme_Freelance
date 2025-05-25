@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import Dropdown from "../../components/dropdown";
+import Dropdown from "../dropdown";
 import { FiAlignJustify } from "react-icons/fi";
 import { BsArrowBarUp } from "react-icons/bs";
 import { FiSearch } from "react-icons/fi";
@@ -177,6 +177,12 @@ useEffect(() => {
                   className="text-sm text-gray-800 dark:text-white hover:dark:text-white"
                 >
                   Profile Settings
+                </a>
+                <a
+                  href=" "
+                  className="mt-3 text-sm font-medium text-red-500 hover:text-red-500 transition duration-150 ease-out hover:ease-in"
+                >
+                  Log Out
                 </a>
                 
               </div>

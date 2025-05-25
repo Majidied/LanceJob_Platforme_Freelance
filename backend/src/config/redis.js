@@ -3,7 +3,6 @@ const config = require('./index');
 
 const redisClient = createClient({
     url: config.redisUrl,
-    legacyMode: true,
 });
 
 redisClient.on('error', (err) => {

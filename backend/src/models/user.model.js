@@ -19,11 +19,17 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['user', 'admin'],
-    default: 'user',
+    enum: ['client', 'freelancer'],
+    default: 'client',
+  },
+  status: {
+    type: String,
+    enum: ['ACTIVE', 'NOT_VERIFIED', 'SUSPENDED'],
+    default: 'NOT_VERIFIED',
   },
 }, {
-  timestamps: true,
+  discriminatorKey: 'role', 
+  timestamps: true 
 });
 
 module.exports = mongoose.model('User', userSchema);

@@ -13,7 +13,7 @@ const config = require('./index');
 const connectDB = async () => {
   try {
     await mongoose.connect(config.mongoUri);
-    console.log('MongoDB connected');
+    console.log('MongoDB connected',config.mongoUri);
   } catch (err) {
     console.error('MongoDB connection error:', err);
     process.exit(1);

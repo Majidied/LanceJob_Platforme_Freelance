@@ -3,7 +3,7 @@ import React from "react";
 
 import Home from "../../../views/user/home";
 import SavedJobs from "../../../views/user/myOffers";
-import Proposals from "../../../views/user/proposals";
+import AddOffer from "../../../views/user/addOffre";
 import Messages from "../../../views/user/messages";
 
 // Icon Imports
@@ -11,9 +11,10 @@ import {
   MdHome,
   MdFavoriteBorder,
   MdOutlineWorkHistory,
+  
 } from "react-icons/md";
 import { BiMessageRoundedDetail } from "react-icons/bi";
-
+import { Plus } from 'lucide-react'
 const routes = [
   {
     name: "Home",
@@ -26,16 +27,16 @@ const routes = [
     name: "My Offers",
     layout: "/user",
     path: "MyOffers",
-    icon: <MdFavoriteBorder className="w-6 h-6" />,
+    icon: <MdOutlineWorkHistory className="w-6 h-6" />,
     component: <SavedJobs />,
     secondary: true,
   },
   {
-    name: "Proposals",
+    name: "Add Offre",
     layout: "/user",
-    path: "proposals",
-    icon: <MdOutlineWorkHistory  className="w-6 h-6" />,
-    component: <Proposals />,
+    path: "add-offre",
+    icon: <Plus  className="w-6 h-6" />,
+    component: <AddOffer />,
     secondary: true,
   },
   {
@@ -46,6 +47,7 @@ const routes = [
     component: <Messages />,
     secondary: true,
   },
+  
   
 ];
 export default routes;

@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Navbar from "../../components/navbar";
 import Sidebar from "../../components/sidebar/user";
 import routes from "../../components/sidebar/user/routes";
+import routesbtn from "./routeBtn";
 
 export default function User(props) {
   const { ...rest } = props;
@@ -77,16 +78,17 @@ export default function User(props) {
             <div className="pt-5s mx-auto mb-auto h-full min-h-[89.2vh] p-2 md:pr-2">
               <Routes>
                 {getRoutes(routes)}
+                {getRoutes(routesbtn)}
 
                 <Route
-                  path="/user"
-                  element={<Navigate to="/user/homeus" replace />}
-                />
-                <Route
-                  path="/freelancer"
-                  element={<Navigate to="/freelancer/homefr" replace />}
-                />
-              </Routes>
+                path="/user"
+                element={<Navigate to="/user/home" replace />}
+              />
+              <Route
+                path="/freelancer"
+                element={<Navigate to="/freelancer/home" replace />}
+              />
+            </Routes>
             </div>
             
           </div>
