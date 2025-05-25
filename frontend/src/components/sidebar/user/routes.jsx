@@ -1,6 +1,5 @@
+
 import React from "react";
-
-
 import Home from "../../../views/user/home";
 import SavedJobs from "../../../views/user/myOffers";
 import AddOffer from "../../../views/user/addOffre";

@@ -3,12 +3,12 @@ import Profile from "../../views/freelancer/profile";
 import EditOfferPage from "../../views/freelancer/propose";
 
 const routes = [
-    {
-        name: "Edit Offer",
-        layout: "/freelancer",
-        path: "home/edit-offer/:jobId",
-        component: <EditOfferPage />,
-      },
+  {
+    name: "Propose",
+    layout: "/freelancer",
+    path: "propose/:jobId", // Route avec paramètre
+    component: <EditOfferPage/>,
+  },
       {
           name: "Profile",
           layout: "/freelancer",
