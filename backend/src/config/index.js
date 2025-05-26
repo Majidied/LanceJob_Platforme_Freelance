@@ -8,4 +8,5 @@ module.exports = {
   redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
   email: process.env.EMAIL_USER || 'your-username',
   emailPassword: process.env.EMAIL_PASS || 'your-password',
+  elasticSearchUrl: process.env.ELASTICSEARCH_URL || 'http://localhost:9200',
 };
