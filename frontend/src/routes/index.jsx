@@ -54,7 +54,7 @@ const Routes = () => {
       ? routesForNotAuthenticatedOnly
       : ['/login', '/register'].map(path => ({
           path,
-          element: <Navigate to="/" />,
+          element: <Navigate to={isFreelancer ? "/freelancer/home" : "/user/home"} />,
         }))
     ),
     ...routesForAuthenticatedOnly,
