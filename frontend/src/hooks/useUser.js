@@ -13,6 +13,8 @@ import {
     setToken,
     clearToken,
     storeUserData,
+    hasAccessToken,
+    getUserData
 } from '../utils/tokenStorage';
 
 export const useUser = () => {
@@ -26,6 +28,21 @@ export const useUser = () => {
         refetchOnWindowFocus: true,
         refetchOnReconnect: true,
         refetchInterval: 1000 * 60 * 5, // 5 minutes
+        enabled: hasAccessToken(),
+        onError: (error) => {
+            console.error('Error fetching user data:', error);
+            clearToken();
+            queryClient.setQueryData(['user'], null); // Set user data to null
+        },
+        onSuccess: (data) => {
+            if (data) {
+                storeUserData(data); // Store user data in localStorage
+            }
+        },
+        select: (data) => {
+            // Optionally transform the user data if needed
+            return data;
+        },
     });
 
     // Login mutation
@@ -72,7 +89,7 @@ export const useUser = () => {
 
     // Logout mutation
     const { mutateAsync: logoutUser } = useMutation({
-        mutationFn: () => logout(),
+        mutationFn: () => logout(getUserData()?.id),
         onSuccess: () => {
             // Clear token and user data
             clearToken();
@@ -81,6 +98,7 @@ export const useUser = () => {
             // Optionally set user data to null
             queryClient.setQueryData(['user'], null);
         },
+        retry: false,
     });
 
     // Resend verification email mutation
