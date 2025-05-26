@@ -178,6 +178,12 @@ useEffect(() => {
                 >
                   Profile Settings
                 </a>
+                <a
+                  href=" "
+                  className="mt-3 text-sm font-medium text-red-500 hover:text-red-500 transition duration-150 ease-out hover:ease-in"
+                >
+                  Log Out
+                </a>
                 
               </div>
             </div>

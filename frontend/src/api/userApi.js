@@ -32,9 +32,9 @@ export const register = async (email, password) => {
 /**
  * Logs out the current user
  */
-export const logout = async () => {
+export const logout = async (userID) => {
     try {
-        const response = await api.post('/auth/logout');
+        const response = await api.post('/auth/logout', { userID });
         return response.data;
     } catch (error) {
         console.error("Logout error:", error);
