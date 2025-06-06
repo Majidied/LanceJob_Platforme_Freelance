@@ -5,7 +5,7 @@ const config = require('./index');
  * Asynchronously connects to the MongoDB database using Mongoose.
  * Logs a success message upon successful connection.
  * If the connection fails, logs the error and exits the process.
- *
+ 
  * @async
  * @function
  * @throws Will terminate the process if the connection fails.

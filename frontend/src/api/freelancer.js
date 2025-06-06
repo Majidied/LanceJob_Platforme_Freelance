@@ -26,27 +26,27 @@ export const freelancerAPI = {
  
   // Save/unsave a job
   toggleSaveJob: (freelancerId, missionId) =>
-    api.post('/freelancers/save-job', { freelancerId, missionId }),
+    api.post('/freelancer/save-job', { freelancerId, missionId }),
  
   // Get saved jobs
   getSavedJobs: (freelancerId) =>
-    api.get(`/freelancers/${freelancerId}/saved-jobs`),
+    api.get(`/freelancer/${freelancerId}/saved-jobs`),
  
   // Apply for a job
   applyForJob: (freelancerId, missionId, proposal) =>
-    api.post('/freelancers/apply', { freelancerId, missionId, proposal }),
+    api.post('/freelancer/apply', { freelancerId, missionId, proposal }),
  
-  // Get all applications
+  // Get all applications (candidatures)
   getApplications: (freelancerId) =>
-    api.get(`/freelancers/${freelancerId}/applications`),
+    api.get(`/freelancer/${freelancerId}/applications`),
  
-  // Get all offers
+  // Get all offers (offres reçues)
   getOffers: (freelancerId) =>
-    api.get(`/freelancers/${freelancerId}/offers`),
+    api.get(`/freelancer/${freelancerId}/offers`),
  
-  // Respond to an offer
+  // Respond to an offer - CORRIGÉ: /freelancer au lieu de /freelancers
   respondToOffer: (freelancerId, offerId, status) =>
-    api.post('/freelancers/respond-offer', { freelancerId, offerId, status })
+    api.post('/freelancer/respond-offer', { freelancerId, offerId, status })
 };
 
 export default freelancerAPI;
