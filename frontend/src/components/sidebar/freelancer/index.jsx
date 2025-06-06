@@ -1,5 +1,5 @@
 /* eslint-disable */
-
+//components/sidebar/freelancer/index.jsx
 import { HiX } from "react-icons/hi";
 import Links from "../Links";
 import logo from "../../../assets/img/sideBar/logo_white.png";

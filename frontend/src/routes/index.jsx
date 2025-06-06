@@ -1,3 +1,4 @@
+//route/index.jsx
 import { RouterProvider, createBrowserRouter, Navigate } from 'react-router-dom';
 import Landing from '../pages/landing';
 import ProfileSetup from '../pages/Profile.page';
