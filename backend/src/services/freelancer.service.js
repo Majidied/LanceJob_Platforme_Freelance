@@ -24,14 +24,12 @@ exports.deleteFreelancer = async (id) => {
   return await Freelancer.findByIdAndDelete(id);
 };
 
-// New methods for job applications, saved jobs, and offers
-
-// Mise à jour de votre méthode applyForMission dans freelancer.service.js
-
-exports.applyForMission = async (freelancerId, missionId, proposal) => {
+// ✅ CORRECTION de la fonction applyForMission dans freelancer.service.js
+exports.applyForMission = async (freelancerId, missionId, proposalData) => {
   console.log('🔍 Service - Vérification de la mission:', missionId);
+  console.log('📝 Service - Proposal data received:', proposalData);
   
-  // Check if mission exists (sans filtre de statut pour le debug)
+  // Check if mission exists
   const mission = await Mission.findById(missionId);
   console.log('📋 Mission trouvée:', mission ? {
     _id: mission._id,
@@ -66,11 +64,28 @@ exports.applyForMission = async (freelancerId, missionId, proposal) => {
   
   console.log('✅ Pas encore postulé, création de la candidature...');
   
-  // Formater la proposition si c'est un objet
-  let formattedProposal = proposal;
-  if (typeof proposal === 'object') {
-    formattedProposal = JSON.stringify(proposal);
+  // ✅ CORRECTION: Assurer que proposalData est un objet, puis stringify UNE SEULE FOIS
+  let formattedProposal;
+  if (typeof proposalData === 'object' && proposalData !== null) {
+    // Valider les données importantes
+    const validatedData = {
+      coverLetter: proposalData.coverLetter || '',
+      proposedPrice: Number(proposalData.proposedPrice) || 0,
+      currency: proposalData.currency || 'MAD',
+      deliveryTime: Number(proposalData.deliveryTime) || 0,
+      attachments: proposalData.attachments || []
+    };
+    
+    console.log('🔧 Service - Validated proposal data:', validatedData);
+    formattedProposal = JSON.stringify(validatedData);
+  } else if (typeof proposalData === 'string') {
+    // Si déjà une string, l'utiliser directement
+    formattedProposal = proposalData;
+  } else {
+    throw new Error('Invalid proposal data format');
   }
+  
+  console.log('💾 Service - Final formatted proposal:', formattedProposal);
   
   // Add to applied missions
   const result = await Freelancer.findByIdAndUpdate(
@@ -89,10 +104,17 @@ exports.applyForMission = async (freelancerId, missionId, proposal) => {
   ).populate('appliedMissions.mission');
   
   console.log('✅ Candidature créée avec succès');
+  
+  // Retourner la dernière candidature ajoutée pour vérification
+  const lastApplication = result.appliedMissions[result.appliedMissions.length - 1];
+  console.log('🔍 Service - Last application created:', {
+    _id: lastApplication._id,
+    proposal: lastApplication.proposal,
+    parsedProposal: JSON.parse(lastApplication.proposal)
+  });
+  
   return result;
 };
-
-
 exports.getAppliedMissions = async (freelancerId) => {
   try {
     console.log('SERVICE: getAppliedMissions for freelancerId:', freelancerId);
@@ -269,6 +291,24 @@ exports.respondToOffer = async (freelancerId, offerId, status) => {
       throw new Error('Failed to find the updated application after status change.');
   }
   
+exports.getSavedJobs = async (freelancerId) => {
+  try {
+    console.log('SERVICE: getSavedJobs for freelancerId:', freelancerId);
+    
+    const freelancer = await Freelancer.findById(freelancerId)
+      .populate('savedJobs')
+      .select('savedJobs');
+
+    if (!freelancer) {
+      throw new Error('Freelancer not found');
+    }
+
+    return freelancer.savedJobs || [];
+  } catch (error) {
+    console.error('SERVICE: Error in getSavedJobs:', error);
+    throw error;
+  }
+};
   // Remapper pour correspondre à la structure attendue par le frontend si nécessaire
   // (similaire à la structure de getAppliedMissions)
   let parsedProposal = { proposedPrice: 0, currency: 'MAD', deliveryTime: 0, coverLetter: '' };

@@ -1,6 +1,6 @@
-// FreelancerContext.jsx - Adapté à votre API
-import React, { createContext, useState, useEffect, useContext } from 'react';
-import { freelancerAPI } from '../api/freelancer'; // Ajustez le chemin selon votre structure
+// FreelancerContext.jsx - Version sans boucle infinie
+import React, { createContext, useState, useEffect, useContext, useCallback, useRef } from 'react';
+import { freelancerAPI } from '../api/freelancer';
 
 export const FreelancerContext = createContext();
 
@@ -22,29 +22,36 @@ export const FreelancerProvider = ({ children }) => {
     offers: null
   });
 
-  // ID freelancer fictif pour les tests (ou récupéré depuis localStorage/context)
+  // ✅ UTILISER L'ID DU FREELANCER DE VOTRE BASE DE DONNÉES
   const [currentFreelancerId, setCurrentFreelancerId] = useState(
-    localStorage.getItem('freelancerId') || null
+    localStorage.getItem('freelancerId') || '6830ee0e4fc7edee46cf57ea'
   );
 
-  // ✅ TOUTES LES FONCTIONS DECLAREES EN PREMIER
+  // ✅ Refs pour éviter les appels multiples
+  const isFetchingApplications = useRef(false);
+  const isFetchingOffers = useRef(false);
+  const isFetchingJobs = useRef(false);
+  const isFetchingSavedJobs = useRef(false);
 
-  // Fetch all available jobs/missions
-  const fetchJobs = async () => {
+  // ✅ Mémoriser les fonctions avec useCallback pour éviter les re-renders
+  const fetchJobs = useCallback(async () => {
+    if (isFetchingJobs.current) {
+      console.log('⏳ Jobs fetch already in progress, skipping...');
+      return;
+    }
+
     try {
+      isFetchingJobs.current = true;
       setLoading(prev => ({ ...prev, jobs: true }));
-      const response = await freelancerAPI.getJobs();
+      console.log('🔄 Fetching jobs...');
       
-      // Adapter selon la structure de votre réponse
-      // Si votre API retourne directement les données :
+      const response = await freelancerAPI.getJobs();
       const jobsData = response.data?.data || response.data || response;
       
-      // Ajouter le statut isSaved depuis localStorage si pas d'auth
       const savedJobsLocal = JSON.parse(localStorage.getItem('savedJobs') || '[]');
       const jobsWithSaveStatus = jobsData.map(job => ({
         ...job,
         isSaved: savedJobsLocal.includes(job._id),
-        // Mapper les champs pour compatibilité avec l'interface
         price: job.budget || job.price,
         timeline: job.deadline ? new Date(job.deadline).toLocaleDateString('fr-FR') : job.timeline,
         priceType: job.type || job.priceType || 'Fixed',
@@ -55,115 +62,157 @@ export const FreelancerProvider = ({ children }) => {
       
       setJobs(jobsWithSaveStatus);
       setError(prev => ({ ...prev, jobs: null }));
+      console.log('✅ Jobs fetched successfully:', jobsWithSaveStatus.length);
     } catch (err) {
-      console.error('Error fetching jobs:', err);
+      console.error('❌ Error fetching jobs:', err);
       setError(prev => ({ 
         ...prev, 
         jobs: err.response?.data?.message || err.message || 'Error fetching jobs' 
       }));
     } finally {
       setLoading(prev => ({ ...prev, jobs: false }));
+      isFetchingJobs.current = false;
     }
-  };
+  }, []); // Pas de dépendances pour éviter les boucles
 
-  // Fetch saved jobs
-  const fetchSavedJobs = async () => {
-    if (!currentFreelancerId) {
-      // Fallback to localStorage
-      const savedJobsLocal = JSON.parse(localStorage.getItem('savedJobs') || '[]');
-      setSavedJobs(savedJobsLocal);
+  const fetchSavedJobs = useCallback(async () => {
+    if (!currentFreelancerId || isFetchingSavedJobs.current) {
+      if (!currentFreelancerId) {
+        const savedJobsLocal = JSON.parse(localStorage.getItem('savedJobs') || '[]');
+        setSavedJobs(savedJobsLocal);
+      }
       return;
     }
     
     try {
+      isFetchingSavedJobs.current = true;
       setLoading(prev => ({ ...prev, savedJobs: true }));
+      console.log('🔄 Fetching saved jobs...');
+      
       const response = await freelancerAPI.getSavedJobs(currentFreelancerId);
       const savedJobsData = response.data?.data || response.data || response;
       setSavedJobs(savedJobsData);
       setError(prev => ({ ...prev, savedJobs: null }));
+      console.log('✅ Saved jobs fetched successfully:', savedJobsData.length);
     } catch (err) {
-      console.error('Error fetching saved jobs:', err);
+      console.error('❌ Error fetching saved jobs:', err);
       setError(prev => ({ 
         ...prev, 
         savedJobs: err.response?.data?.message || 'Error fetching saved jobs' 
       }));
     } finally {
       setLoading(prev => ({ ...prev, savedJobs: false }));
+      isFetchingSavedJobs.current = false;
     }
-  };
+  }, [currentFreelancerId]);
 
-  // Fetch applications
-  const fetchApplications = async () => {
-    if (!currentFreelancerId) {
-      setAppliedJobs([]);
+  const fetchApplications = useCallback(async () => {
+    if (!currentFreelancerId || isFetchingApplications.current) {
+      if (!currentFreelancerId) {
+        console.log('❌ No currentFreelancerId, setting empty applications');
+        setAppliedJobs([]);
+      }
       return;
     }
     
     try {
+      isFetchingApplications.current = true;
       setLoading(prev => ({ ...prev, appliedJobs: true }));
       console.log('🔄 Fetching applications for freelancer:', currentFreelancerId);
       
       const response = await freelancerAPI.getApplications(currentFreelancerId);
-      console.log('📦 Applications response:', response);
-      
       const applicationsData = response.data?.data || response.data || response;
-      console.log('📋 Applications data:', applicationsData);
 
-      // ✅ AJOUT de proposedPrice qui manquait
-      const formattedApplications = applicationsData.map(app => {
-        let parsedProposal = {};
-        try {
-          parsedProposal = typeof app.proposal === 'string' ? JSON.parse(app.proposal) : app.proposal;
-        } catch (e) {
-          parsedProposal = { coverLetter: app.proposal };
-        }
+      if (!Array.isArray(applicationsData)) {
+        console.warn('⚠️ Applications data is not an array:', applicationsData);
+        setAppliedJobs([]);
+        setError(prev => ({ ...prev, appliedJobs: null }));
+        return;
+      }
 
-        return {
-          _id: app._id,
-          missionTitle: app.mission?.title || app.missionTitle || 'Mission supprimée',
-          missionId: app.mission?._id || app.missionId,
-          clientName: app.mission?.client?.name || app.clientName || 'Client anonyme',
-          status: app.status,
-          proposedPrice: parsedProposal.proposedPrice || 0, // ✅ AJOUT de cette ligne
-          currency: parsedProposal.currency || 'MAD',
-          deliveryTime: parsedProposal.deliveryTime || 0,
-          coverLetter: parsedProposal.coverLetter || '',
-          appliedAt: app.applicationDate || app.appliedAt,
-          skills: app.mission?.skills || app.skills || []
-        };
-      });
+      const formattedApplications = applicationsData
+        .filter(app => app && typeof app === 'object')
+        .map((app, index) => {
+          let parsedProposal = {
+            coverLetter: '',
+            proposedPrice: 0,
+            currency: 'MAD',
+            deliveryTime: 0,
+            attachments: []
+          };
+          
+          if (app.proposal) {
+            try {
+              if (typeof app.proposal === 'string') {
+                parsedProposal = { ...parsedProposal, ...JSON.parse(app.proposal) };
+              } else if (typeof app.proposal === 'object') {
+                parsedProposal = { ...parsedProposal, ...app.proposal };
+              }
+            } catch (e) {
+              console.warn(`Failed to parse proposal for app ${app._id}:`, e);
+              parsedProposal.coverLetter = String(app.proposal || '');
+            }
+          }
+
+          return {
+            _id: app._id || `temp-${index}-${Date.now()}`,
+            missionTitle: app.missionTitle || 
+                         (app.mission && app.mission.title) || 
+                         'Mission supprimée',
+            missionId: app.missionId || 
+                      (app.mission && app.mission._id) || 
+                      null,
+            clientName: app.clientName || 
+                       (app.mission && app.mission.client && app.mission.client.name) || 
+                       'Client anonyme',
+            status: app.status || 'pending',
+            proposedPrice: Number(parsedProposal.proposedPrice) || 0,
+            currency: parsedProposal.currency || 'MAD',
+            deliveryTime: Number(parsedProposal.deliveryTime) || 0,
+            coverLetter: parsedProposal.coverLetter || '',
+            appliedAt: app.applicationDate || app.appliedAt || new Date().toISOString(),
+            skills: (app.mission && Array.isArray(app.mission.tags)) ? app.mission.tags : 
+                   (Array.isArray(app.skills)) ? app.skills : 
+                   [],
+            budget: (app.mission && app.mission.budget) ? Number(app.mission.budget) : 0,
+            timeline: app.mission && app.mission.deadline ? 
+                     new Date(app.mission.deadline).toLocaleDateString('fr-FR') : 
+                     'Non spécifié',
+            description: (app.mission && app.mission.description) || ''
+          };
+        });
       
       setAppliedJobs(formattedApplications);
       setError(prev => ({ ...prev, appliedJobs: null }));
+      console.log('✅ Applications fetched successfully:', formattedApplications.length);
+      
     } catch (err) {
       console.error('❌ Error fetching applications:', err);
-      console.log('📍 API endpoint called:', `/freelancers/${currentFreelancerId}/applications`);
-      console.log('📍 Error details:', {
-        status: err.response?.status,
-        statusText: err.response?.statusText,
-        data: err.response?.data
-      });
       
-      // Si l'endpoint n'existe pas (404) ou autre erreur serveur, utiliser mock temporairement
       if (err.response?.status === 404 || err.response?.status >= 500) {
-        console.log('🧪 Endpoint non implémenté ou erreur serveur - Utilisation de données mock');
+        console.log('🧪 Using mock data due to API error');
         const mockApplications = [
           {
-            _id: '1',
+            _id: 'mock-1',
             missionTitle: 'Développement d\'une application mobile',
+            missionId: '683202cc580b1b297a604646',
             clientName: 'TechCorp',
             status: 'pending',
             proposedPrice: 1200,
             currency: 'MAD',
             deliveryTime: 14,
-            coverLetter: 'Je suis très intéressé par votre projet de développement d\'application mobile...',
+            coverLetter: 'Je suis très intéressé par votre projet...',
             appliedAt: new Date().toISOString(),
-            skills: ['React Native', 'JavaScript', 'Node.js']
+            skills: ['React Native', 'JavaScript', 'Node.js'],
+            budget: 1500,
+            timeline: '2 semaines',
+            description: 'Application mobile innovante'
           }
         ];
         setAppliedJobs(mockApplications);
         setError(prev => ({ ...prev, appliedJobs: null }));
       } else {
+        setAppliedJobs([]);
         setError(prev => ({ 
           ...prev, 
           appliedJobs: `Erreur ${err.response?.status || 'réseau'}: ${err.response?.data?.message || err.message}` 
@@ -171,24 +220,26 @@ export const FreelancerProvider = ({ children }) => {
       }
     } finally {
       setLoading(prev => ({ ...prev, appliedJobs: false }));
+      isFetchingApplications.current = false;
     }
-  };
+  }, [currentFreelancerId]);
 
-  // Fetch offers
-  const fetchOffers = async () => {
-    if (!currentFreelancerId) {
-      setOffers([]);
+  const fetchOffers = useCallback(async () => {
+    if (!currentFreelancerId || isFetchingOffers.current) {
+      if (!currentFreelancerId) {
+        console.log('❌ No currentFreelancerId, setting empty offers');
+        setOffers([]);
+      }
       return;
     }
     
     try {
+      isFetchingOffers.current = true;
       setLoading(prev => ({ ...prev, offers: true }));
       console.log('🔄 Context: Fetching offers for freelancer:', currentFreelancerId);
       
       const response = await freelancerAPI.getOffers(currentFreelancerId);
-      console.log('📦 Context: Offers response:', response);
       
-      // Extraction sécurisée des données
       let offersData = [];
       if (response?.data?.success && Array.isArray(response.data.data)) {
         offersData = response.data.data;
@@ -196,19 +247,20 @@ export const FreelancerProvider = ({ children }) => {
         offersData = response.data;
       } else if (Array.isArray(response)) {
         offersData = response;
+      } else {
+        console.warn('⚠️ Offers response format unexpected:', response);
+        offersData = [];
       }
       
-      console.log('💼 Context: Extracted offers data:', offersData);
-      
-      // Validation et nettoyage des données
       const validOffers = offersData
         .filter(item => item && typeof item === 'object')
-        .map(item => ({
-          _id: item._id || `offer-${Date.now()}-${Math.random()}`,
+        .map((item, index) => ({
+          _id: item._id || `offer-${Date.now()}-${index}`,
           title: item.title || 'Titre manquant',
           clientName: item.clientName || 'Client anonyme',
           status: item.status || 'pending',
-          offerPrice: typeof item.offerPrice === 'number' ? item.offerPrice : 0,
+          offerPrice: typeof item.offerPrice === 'number' ? item.offerPrice : 
+                     typeof item.proposedPrice === 'number' ? item.proposedPrice : 0,
           currency: item.currency || 'MAD',
           timeline: item.timeline || 'Non spécifié',
           skills: Array.isArray(item.skills) ? item.skills : [],
@@ -218,25 +270,18 @@ export const FreelancerProvider = ({ children }) => {
           isApplication: Boolean(item.isApplication)
         }));
       
-      console.log('✅ Context: Valid offers after processing:', validOffers.length);
       setOffers(validOffers);
       setError(prev => ({ ...prev, offers: null }));
+      console.log('✅ Offers fetched successfully:', validOffers.length);
       
     } catch (err) {
       console.error('❌ Context: Error fetching offers:', err);
-      console.log('📍 API endpoint called:', `/freelancers/${currentFreelancerId}/offers`);
-      console.log('📍 Error details:', {
-        status: err.response?.status,
-        statusText: err.response?.statusText,
-        data: err.response?.data
-      });
       
-      // Si l'endpoint n'existe pas (404) ou autre erreur serveur, utiliser mock temporairement
       if (err.response?.status === 404 || err.response?.status >= 500) {
-        console.log('🧪 Endpoint non implémenté ou erreur serveur - Utilisation de données de test');
+        console.log('🧪 Using mock offers due to API error');
         const mockOffers = [
           {
-            _id: 'test-offer-1',
+            _id: 'mock-offer-1',
             title: 'Test - Développement Landing Page',
             clientName: 'Test Client',
             status: 'pending',
@@ -261,20 +306,17 @@ export const FreelancerProvider = ({ children }) => {
       }
     } finally {
       setLoading(prev => ({ ...prev, offers: false }));
+      isFetchingOffers.current = false;
     }
-  };
+  }, [currentFreelancerId]);
 
-  // Toggle save job
-  const toggleSaveJob = async (missionId) => {
+  // ✅ Mémoriser les autres fonctions
+  const toggleSaveJob = useCallback(async (missionId) => {
     try {
       if (currentFreelancerId) {
-        // Utiliser l'API si on a un freelancer ID
         const response = await freelancerAPI.toggleSaveJob(currentFreelancerId, missionId);
-        
-        // Rafraîchir les jobs sauvegardés
         await fetchSavedJobs();
       } else {
-        // Fallback vers localStorage si pas d'auth
         const savedJobsLocal = JSON.parse(localStorage.getItem('savedJobs') || '[]');
         const isCurrentlySaved = savedJobsLocal.includes(missionId);
         
@@ -289,7 +331,6 @@ export const FreelancerProvider = ({ children }) => {
         setSavedJobs(updatedSavedJobs);
       }
       
-      // Mettre à jour l'état des jobs
       setJobs(prev => 
         prev.map(job => 
           job._id === missionId 
@@ -303,12 +344,10 @@ export const FreelancerProvider = ({ children }) => {
       console.error('Error toggling save job:', err);
       throw new Error(err.response?.data?.message || 'Error saving job');
     }
-  };
+  }, [currentFreelancerId, fetchSavedJobs]);
 
-  // Apply for a job
-  const applyForJob = async (missionId, proposal) => {
+  const applyForJob = useCallback(async (missionId, proposal) => {
     try {
-      // Vérifier si on a un freelancerId
       if (!currentFreelancerId) {
         throw new Error('Vous devez être connecté pour postuler');
       }
@@ -319,31 +358,29 @@ export const FreelancerProvider = ({ children }) => {
       
       console.log('✅ Application submitted successfully:', response);
 
-      // Rafraîchir la liste des candidatures ET des offres
-      await fetchApplications();
-      await fetchOffers();
+      // ✅ Attendre un délai avant de refetch pour éviter les requêtes simultanées
+      setTimeout(() => {
+        fetchApplications();
+        fetchOffers();
+      }, 500);
       
       return response.data || response;
     } catch (err) {
       console.error('❌ Error applying for job:', err);
       
-      // Si c'est une erreur 409 (déjà postulé)
       if (err.response?.status === 409) {
         throw new Error('Vous avez déjà postulé à cette mission');
       }
       
-      // Si c'est une erreur 404 (mission non trouvée)
       if (err.response?.status === 404) {
         throw new Error('Mission non trouvée');
       }
 
-      // Pour les autres erreurs
       throw new Error(err.response?.data?.message || err.message || 'Erreur lors de la candidature');
     }
-  };
+  }, [currentFreelancerId, fetchApplications, fetchOffers]);
 
-  // Respond to an offer
-  const respondToOffer = async (offerId, status) => {
+  const respondToOffer = useCallback(async (offerId, status) => {
     if (!currentFreelancerId) {
       throw new Error('Please login to respond to offers');
     }
@@ -351,7 +388,6 @@ export const FreelancerProvider = ({ children }) => {
     try {
       const response = await freelancerAPI.respondToOffer(currentFreelancerId, offerId, status);
       
-      // Update offers in state
       setOffers(prev => 
         prev.map(offer => 
           offer._id === offerId 
@@ -365,55 +401,81 @@ export const FreelancerProvider = ({ children }) => {
       console.error('Error responding to offer:', err);
       throw new Error(err.response?.data?.message || 'Error responding to offer');
     }
-  };
+  }, [currentFreelancerId]);
 
-  // Fonction pour définir l'ID du freelancer (utile pour les tests)
-  const setFreelancerId = (id) => {
+  const setFreelancerId = useCallback((id) => {
+    console.log('🔄 Setting freelancer ID:', id);
     setCurrentFreelancerId(id);
     if (id) {
       localStorage.setItem('freelancerId', id);
     } else {
       localStorage.removeItem('freelancerId');
     }
-  };
+  }, []);
 
-  // ✅ useEffect APRES toutes les déclarations de fonctions
+  // ✅ useEffect UNIQUEMENT pour le chargement initial - PAS de refetch automatique
   useEffect(() => {
+    console.log('🚀 FreelancerContext initializing with freelancer ID:', currentFreelancerId);
+    
+    // Charger les données seulement une fois au démarrage
     fetchJobs();
+    
     if (currentFreelancerId) {
       fetchSavedJobs();
       fetchApplications();
       fetchOffers();
     }
+  }, []); // ✅ AUCUNE DÉPENDANCE pour éviter les boucles
+
+  // ✅ useEffect séparé pour les changements de freelancerId
+  useEffect(() => {
+    if (currentFreelancerId) {
+      localStorage.setItem('freelancerId', currentFreelancerId);
+    }
   }, [currentFreelancerId]);
 
-  // ✅ RETURN à la fin
+  // ✅ Mémoriser la valeur du contexte
+  const contextValue = React.useMemo(() => ({
+    jobs,
+    savedJobs,
+    appliedJobs,
+    offers,
+    loading,
+    error,
+    currentFreelancerId,
+    fetchJobs,
+    fetchSavedJobs,
+    fetchApplications,
+    fetchOffers,
+    toggleSaveJob,
+    applyForJob,
+    respondToOffer,
+    setFreelancerId,
+  }), [
+    jobs,
+    savedJobs,
+    appliedJobs,
+    offers,
+    loading,
+    error,
+    currentFreelancerId,
+    fetchJobs,
+    fetchSavedJobs,
+    fetchApplications,
+    fetchOffers,
+    toggleSaveJob,
+    applyForJob,
+    respondToOffer,
+    setFreelancerId,
+  ]);
+
   return (
-    <FreelancerContext.Provider
-      value={{
-        jobs,
-        savedJobs,
-        appliedJobs,
-        offers,
-        loading,
-        error,
-        currentFreelancerId,
-        fetchJobs,
-        fetchSavedJobs,
-        fetchApplications,
-        fetchOffers,
-        toggleSaveJob,
-        applyForJob,
-        respondToOffer,
-        setFreelancerId,
-      }}
-    >
+    <FreelancerContext.Provider value={contextValue}>
       {children}
     </FreelancerContext.Provider>
   );
 };
 
-// Custom hook to use the FreelancerContext
 export const useFreelancer = () => {
   const context = useContext(FreelancerContext);
   if (context === undefined) {

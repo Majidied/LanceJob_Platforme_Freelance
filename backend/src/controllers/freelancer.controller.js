@@ -60,6 +60,12 @@ exports.applyForMission = async (req, res, next) => {
   try {
     const { freelancerId, missionId, proposal } = req.body;
     
+    console.log('🔍 Apply for mission - Data received:', {
+      freelancerId,
+      missionId,
+      proposal
+    });
+    
     if (!freelancerId || !missionId) {
       return res.status(400).json({ message: 'Freelancer ID and Mission ID are required' });
     }
@@ -72,22 +78,29 @@ exports.applyForMission = async (req, res, next) => {
       });
     }
 
-    // Formater la proposition pour le stockage
-    const formattedProposal = JSON.stringify({
+    // ✅ CORRECTION: Passer l'objet directement, pas de JSON.stringify
+    // Le service va s'en charger
+    const proposalData = {
       coverLetter: proposal.coverLetter,
-      proposedPrice: proposal.proposedPrice,
+      proposedPrice: Number(proposal.proposedPrice), // S'assurer que c'est un nombre
       currency: proposal.currency || 'MAD',
-      deliveryTime: proposal.deliveryTime,
+      deliveryTime: Number(proposal.deliveryTime), // S'assurer que c'est un nombre
       attachments: proposal.attachments || []
-    });
+    };
     
-    const application = await freelancerService.applyForMission(freelancerId, missionId, formattedProposal);
+    console.log('💾 Sending proposal data to service:', proposalData);
+    
+    const application = await freelancerService.applyForMission(freelancerId, missionId, proposalData);
+    
+    console.log('✅ Application created successfully');
+    
     res.status(201).json({ 
       success: true,
       message: 'Application submitted successfully', 
       data: application 
     });
   } catch (error) {
+    console.error('❌ Error in applyForMission:', error);
     if (error.message === 'Mission not found' || error.message === 'You have already applied for this mission') {
       return res.status(400).json({ success: false, message: error.message });
     }
@@ -95,15 +108,39 @@ exports.applyForMission = async (req, res, next) => {
   }
 };
 
+// ...existing code...
+
 exports.getAppliedMissions = async (req, res, next) => {
   try {
     const { id } = req.params;
+    console.log('🔍 Controller: Getting applications for freelancer ID:', id);
+    
+    if (!id) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Freelancer ID is required' 
+      });
+    }
+    
     const applications = await freelancerService.getAppliedMissions(id);
-    res.status(200).json({ data: applications });
+    console.log('📋 Controller: Found applications:', applications ? applications.length : 0);
+    
+    res.status(200).json({ 
+      success: true,
+      data: applications || [] 
+    });
   } catch (error) {
+    console.error('❌ Controller: Error in getAppliedMissions:', error.message);
+    if (error.message === 'Freelancer not found') {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Freelancer not found' 
+      });
+    }
     next(error);
   }
 };
+
 
 exports.saveJob = async (req, res, next) => {
   try {
