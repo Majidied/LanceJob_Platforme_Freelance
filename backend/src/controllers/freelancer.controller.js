@@ -63,8 +63,25 @@ exports.applyForMission = async (req, res, next) => {
     if (!freelancerId || !missionId) {
       return res.status(400).json({ message: 'Freelancer ID and Mission ID are required' });
     }
+
+    // Validation de la proposition
+    if (!proposal || !proposal.coverLetter || !proposal.proposedPrice || !proposal.deliveryTime) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Proposition incomplète. coverLetter, proposedPrice et deliveryTime sont requis' 
+      });
+    }
+
+    // Formater la proposition pour le stockage
+    const formattedProposal = JSON.stringify({
+      coverLetter: proposal.coverLetter,
+      proposedPrice: proposal.proposedPrice,
+      currency: proposal.currency || 'MAD',
+      deliveryTime: proposal.deliveryTime,
+      attachments: proposal.attachments || []
+    });
     
-    const application = await freelancerService.applyForMission(freelancerId, missionId, proposal);
+    const application = await freelancerService.applyForMission(freelancerId, missionId, formattedProposal);
     res.status(201).json({ 
       success: true,
       message: 'Application submitted successfully', 
@@ -127,9 +144,30 @@ exports.getSavedJobs = async (req, res, next) => {
 exports.getOffers = async (req, res, next) => {
   try {
     const { id } = req.params;
+    console.log('🔍 Controller: Getting offers for freelancer ID:', id);
+    
+    if (!id) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Freelancer ID is required' 
+      });
+    }
+    
     const offers = await freelancerService.getOffers(id);
-    res.status(200).json({ data: offers });
+    console.log('💼 Controller: Found offers:', offers ? offers.length : 0);
+    
+    res.status(200).json({ 
+      success: true,
+      data: offers || [] 
+    });
   } catch (error) {
+    console.error('❌ Controller: Error in getOffers:', error.message);
+    if (error.message === 'Freelancer not found') {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Freelancer not found' 
+      });
+    }
     next(error);
   }
 };

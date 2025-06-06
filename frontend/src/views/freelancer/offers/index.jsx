@@ -1,54 +1,89 @@
 import React, { useState, useEffect } from 'react';
 import OffersList from './OffersList';
 import OfferDetails from './OfferDetails';
-import { mockOffers } from './offersData';
+import { useFreelancer } from '../../../context/FreelancerContext';
 
 const Offers = () => {
-  const [appliedOffers, setAppliedOffers] = useState([]);
-  
   const [selectedOffer, setSelectedOffer] = useState(null);
   
-  const [isLoading, setIsLoading] = useState(true);
+  // Utiliser le FreelancerContext au lieu des données mockées
+  const { 
+    appliedJobs, 
+    offers, 
+    loading, 
+    error, 
+    fetchApplications, 
+    fetchOffers,
+    currentFreelancerId 
+  } = useFreelancer();
 
   useEffect(() => {
-    const fetchOffers = async () => {
-      try {
-        setTimeout(() => {
-          setAppliedOffers(mockOffers);
-          setIsLoading(false);
-        }, 500);
-      } catch (error) {
-        console.error("Erreur lors du chargement des offres:", error);
-        setIsLoading(false);
-      }
-    };
+    console.log('🚀 Offers component mounted, fetching data...');
+    if (currentFreelancerId) {
+      // Charger les applications et offers au démarrage
+      fetchApplications();
+      fetchOffers();
+    }
+  }, [currentFreelancerId]);
 
-    fetchOffers();
-  }, []);
-
-  const viewOfferDetails = (id) => {
-    const offer = appliedOffers.find(offer => offer.id === id);
-    setSelectedOffer(offer);
+  const viewOfferDetails = (id, item) => {
+    console.log('👀 Viewing details for:', id, item);
+    setSelectedOffer(item);
   };
 
   const backToList = () => {
     setSelectedOffer(null);
   };
 
-  if (isLoading) {
+  // Debug info
+  console.log('🔍 Offers component state:', {
+    appliedJobs: appliedJobs?.length,
+    offers: offers?.length,
+    loading,
+    error,
+    currentFreelancerId
+  });
+
+  if (loading.appliedJobs || loading.offers) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="w-12 h-12 border-b-2 border-blue-500 rounded-full animate-spin"></div>
+        <p className="ml-4 text-gray-600">Chargement des données...</p>
       </div>
     );
   }
 
-  if (appliedOffers.length === 0) {
+  if (error.appliedJobs || error.offers) {
     return (
       <div className="p-6 text-center">
-        <p className="text-gray-600">Vous n'avez pas encore postulé à des offres.</p>
-        <button className="px-4 py-2 mt-4 text-white bg-blue-500 rounded hover:bg-blue-600">
-          Découvrir des projets
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-600 mb-2">Erreur lors du chargement :</p>
+          <p className="text-sm text-red-500">
+            {error.appliedJobs || error.offers}
+          </p>
+          <button 
+            onClick={() => {
+              fetchApplications();
+              fetchOffers();
+            }}
+            className="px-4 py-2 mt-4 text-white bg-red-500 rounded hover:bg-red-600"
+          >
+            Réessayer
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentFreelancerId) {
+    return (
+      <div className="p-6 text-center">
+        <p className="text-gray-600">Aucun freelancer connecté.</p>
+        <button 
+          onClick={() => window.location.href = '/freelancer/login'}
+          className="px-4 py-2 mt-4 text-white bg-blue-500 rounded hover:bg-blue-600"
+        >
+          Se connecter
         </button>
       </div>
     );
@@ -59,7 +94,7 @@ const Offers = () => {
       {selectedOffer ? (
         <OfferDetails offer={selectedOffer} onBackToList={backToList} />
       ) : (
-        <OffersList offers={appliedOffers} onViewDetails={viewOfferDetails} />
+        <OffersList onViewDetails={viewOfferDetails} />
       )}
     </div>
   );
