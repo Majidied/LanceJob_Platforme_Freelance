@@ -11,3 +11,8 @@ export const createMission = async (missionData) => {
   const response = await api.post(`/mission`, missionData);
   return response.data;
 };
+
+export const updateMission = async (id,updatedData) => {
+  const response = await api.put(`/mission/${id}`,updatedData);
+  return response.data;
+};

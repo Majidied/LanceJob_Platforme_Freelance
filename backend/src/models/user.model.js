@@ -18,6 +18,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  profileImage: {
+    type: String, // URL ou chemin vers l'image
+    default: null
+  },
   role: {
     type: String,
     enum: ['client', 'freelancer'],
@@ -28,7 +32,8 @@ const userSchema = new mongoose.Schema({
     enum: ['activate', 'not_verified', 'suspended'],
   },
 
-}, {
+},
+ {
   discriminatorKey: 'role', 
   timestamps: true 
 });
