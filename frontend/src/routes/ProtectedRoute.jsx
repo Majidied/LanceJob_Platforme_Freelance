@@ -3,7 +3,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { hasAccessToken } from '../utils/tokenStorage';
 import useUser from '../hooks/useUser';
 
-const ProtectedRoute: React.FC = () => {
+const ProtectedRoute = () => {
   const { isVerified } = useUser();
   const location = useLocation();
 
