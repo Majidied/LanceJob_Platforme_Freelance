@@ -28,7 +28,7 @@ const LoginPage = () => {
       });
       
       // Redirect after successful login
-      navigate('/');
+      navigate('/user/home');
     } catch (err) {
       // Show error notification
       notify({

@@ -19,9 +19,9 @@ export const login = async (email, password) => {
 /**
  * Registers a new user
  */
-export const register = async (email, password) => {
+export const register = async (firstName, lastName, email, password, role, agreedToTerms) => {
     try {
-        const response = await api.post('/auth/register', { email, password });
+        const response = await api.post('/auth/register', { firstName, lastName, email, password, role, agreedToTerms });
         return response.data;
     } catch (error) {
         console.error("Registration error:", error);
@@ -32,9 +32,9 @@ export const register = async (email, password) => {
 /**
  * Logs out the current user
  */
-export const logout = async (userID) => {
+export const logout = async () => {
     try {
-        const response = await api.post('/auth/logout', { userID });
+        const response = await api.post('/auth/logout');
         return response.data;
     } catch (error) {
         console.error("Logout error:", error);
@@ -68,9 +68,9 @@ export const isAuthenticated = () => {
 /**
  * Verifies a user's email with verification code
  */
-export const verifyEmail = async (email, verificationCode) => {
+export const verifyEmail = async (verificationCode) => {
     try {
-        const response = await api.post('/auth/verify-email', { email, verificationCode });
+        const response = await api.post('/auth/verify-email', { verificationCode });
         return response.data;
     } catch (error) {
         console.error("Email verification error:", error);
@@ -81,9 +81,9 @@ export const verifyEmail = async (email, verificationCode) => {
 /**
  * Resends verification email
  */
-export const resendVerificationEmail = async (email) => {
+export const resendVerificationEmail = async () => {
     try {
-        const response = await api.post('/auth/resend-verification', { email });
+        const response = await api.post('/auth/resend-verification');
         return response.data;
     } catch (error) {
         console.error("Resend verification email error:", error);
@@ -129,3 +129,9 @@ export const resetPassword = async (email, resetToken, newPassword) => {
         throw error;
     }
 };
+
+
+export async function isVerified() {
+  const resp = await api.get('/auth/is-verified');
+  return resp.data;
+}

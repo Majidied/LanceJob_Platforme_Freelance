@@ -64,6 +64,8 @@ const generateVerificationCode = (userID) => {
  */
 const verifyVerificationCode = async (userID, verificationCode) => {
     const storedCode = await redisClient.get(userID);
+    console.log('Stored code:', storedCode);
+    console.log('Provided code:', verificationCode);
     if (storedCode === verificationCode) {
         await redisClient.del(userID); // Delete the code after successful verification
         return true;

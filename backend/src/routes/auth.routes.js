@@ -1,6 +1,6 @@
 const express = require('express');
 const authController = require('../controllers/auth.controller');
-const authenticateJWT = require('../middleware/auth.middleware');
+const { authenticateJWT} = require('../middleware/auth.middleware');
 
 const router = express.Router();
 
@@ -8,6 +8,8 @@ const router = express.Router();
 router.post('/register', authController.register);
 // User login
 router.post('/login', authController.login);
+// User verification
+router.get('/is-verified', authController.isVerified);
 // User logout
 router.post('/logout', authController.logout);
 // Verify email

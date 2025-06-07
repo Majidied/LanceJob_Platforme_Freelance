@@ -1,7 +1,10 @@
+const Freelancer = require('../models/freelancer.model');
+const Client = require('../models/client.model');
 const User = require('../models/user.model');
-const { generateToken, generateVerificationCode, verifyVerificationCode } = require('../utils/jwt.utils');
-const { SendVerificationEmail } = require('../utils/email.utils');
+const { generateToken, generateVerificationCode, verifyVerificationCode, getUserIdByToken } = require('../utils/jwt.utils');
+const { sendVerificationEmail } = require('../utils/email.utils');
 const bcrypt = require('bcrypt');
+const redisClient = require('../config/redis');
 
 const login = async (req, res) => {
     try {
@@ -31,8 +34,31 @@ const login = async (req, res) => {
 
 const logout = async (req, res) => {
     try {
-        const userId = req.user.id;
-        await redisClient.del(userId);
+        const authHeader = req.headers.authorization;
+        console.log('Authorization header:', authHeader);
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            console.error('Missing or malformed Authorization header');
+            return res.status(400).json({ message: 'Authorization header missing or malformed' });
+        }
+        const token = authHeader.split(' ')[1];
+        console.log('Extracted token:', token);
+        const userId = await getUserIdByToken(token);
+        console.log('User ID from token:', userId);
+        if (!userId) {
+            console.error('Invalid token or user not found');
+            return res.status(400).json({ message: 'Invalid token or user not found' });
+        }
+        // Use correct redis client instance
+        if (redisClient.del) {
+            await redisClient.del(userId.toString());
+            console.log(`Deleted session for user ID: ${userId}`);
+        } else if (redisClient.redisClient && redisClient.redisClient.del) {
+            await redisClient.redisClient.del(userId.toString());
+            console.log(`Deleted session for user ID: ${userId} using redisClient.redisClient`);
+        } else {
+            console.error('Redis client is not properly configured');
+            return res.status(500).json({ message: 'Redis client is not properly configured' });
+        }
         res.json({ message: 'Logged out' });
     } catch (error) {
         console.error('Error during logout:', error);
@@ -41,25 +67,43 @@ const logout = async (req, res) => {
 };
 
 const register = async (req, res) => {
+    let user = null;
     try {
         const { FrisName, LastName, email, password, role } = req.body;
-        const existingUser = await User.findOne({ email });
+        const userRole = role === 'freelancer' ? 'freelancer' : 'client';
+        const Model = userRole === 'freelancer' ? Freelancer : Client;
+        const existingUser = await Model.findOne({ email });
         if (existingUser) {
             return res.status(400).json({ message: 'Email is already in use' });
         }
         const hashedPassword = await bcrypt.hash(password, 10);
-        const verificationCode = generateVerificationCode();
-        const user = new User({
+        user = new Model({
             name: `${FrisName} ${LastName}`,
             email: email.trim().toLowerCase(),
             password: hashedPassword,
-            role: role || 'client',
+            role: userRole,
         });
         await user.save();
-        await SendVerificationEmail(email, verificationCode);
-        const token = generateToken(user.id);
-        res.status(201).json({ message: 'User registered successfully. Please check your email for verification.', token });
+        try {
+            const verificationCode = generateVerificationCode(user.id);
+            await sendVerificationEmail(email, verificationCode);
+            const token = generateToken(user.id);
+            res.status(201).json({ message: 'User registered successfully. Please check your email for verification.', token });
+        } catch (innerError) {
+            // If sending email or generating code fails, remove the user
+            await Model.deleteOne({ _id: user._id });
+            console.error('Error after saving user, rolling back:', innerError);
+            res.status(500).json({ message: 'An error occurred during registration. Please try again.' });
+        }
     } catch (error) {
+        // If user was created but something failed, try to remove
+        if (user && user._id) {
+            try {
+                await user.constructor.deleteOne({ _id: user._id });
+            } catch (cleanupError) {
+                console.error('Error during cleanup after registration failure:', cleanupError);
+            }
+        }
         console.error('Error during registration:', error);
         res.status(500).json({ message: 'An error occurred during registration' });
     }
@@ -67,17 +111,26 @@ const register = async (req, res) => {
 
 const verifyEmail = async (req, res) => {
     try {
-        const { email, verificationCode } = req.body;
-        const user = await User.findOne({ email });
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(400).json({ message: 'Authorization header missing or malformed' });
+        }
+        const token = authHeader.split(' ')[1];
+        const userId = await getUserIdByToken(token);
+        if (!userId) {
+            return res.status(401).json({ message: 'Invalid token' });
+        }
+        const { verificationCode } = req.body;
+        const user = await User.findOne({ _id: userId });
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
-        if (verifyVerificationCode(user.id, verificationCode)) {
+        if (!verifyVerificationCode(user.id, verificationCode)) {
             return res.status(400).json({ message: 'Invalid verification code' });
         }
-        user.isVerified = true;
+        user.status = "ACTIVE";
         await user.save();
-        await redisClient.del(user.id);
+        await redisClient.redisClient.del(userId.toString());
         res.json({ message: 'Email verified successfully' });
     } catch (error) {
         console.error('Error during email verification:', error);
@@ -87,17 +140,25 @@ const verifyEmail = async (req, res) => {
 
 const resendVerificationEmail = async (req, res) => {
     try {
-        const { email } = req.body;
-        const user = await User.findOne({ email });
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(400).json({ message: 'Authorization header missing or malformed' });
+        }
+        const token = authHeader.split(' ')[1];
+        const userId = await getUserIdByToken(token);
+        if (!userId) {
+            return res.status(401).json({ message: 'Invalid token' });
+        }
+        const user = await User.findOne({ _id: userId });
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
-        if (user.isVerified) {
+        if (user.status === 'ACTIVE') {
             return res.status(400).json({ message: 'Email is already verified' });
         }
-        const verificationCode = generateVerificationCode();
+        const verificationCode = generateVerificationCode(user.id);
         await user.save();
-        await SendVerificationEmail(email, verificationCode);
+        await sendVerificationEmail(user.email, verificationCode);
         res.json({ message: 'Verification email resent successfully' });
     } catch (error) {
         console.error('Error during resending verification email:', error);
@@ -160,6 +221,28 @@ const sendPasswordResetEmail = async (req, res) => {
     }
 }
 
+const isVerified = async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(400).json({ message: 'Authorization header missing or malformed' });
+        }
+        const token = authHeader.split(' ')[1];
+        const userId = await getUserIdByToken(token);
+        if (!userId) {
+            return res.status(401).json({ message: 'Invalid token' });
+        }
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        res.json({ isVerified: !!user.status && user.status === 'ACTIVE' });
+    } catch (error) {
+        console.error('Error checking verification status:', error);
+        res.status(500).json({ message: 'An error occurred while checking verification status' });
+    }
+};
+
 module.exports = {
     login,
     logout,
@@ -168,5 +251,6 @@ module.exports = {
     resendVerificationEmail,
     verifyPasswordResetToken,
     resetPassword,
-    sendPasswordResetEmail
+    sendPasswordResetEmail,
+    isVerified
 };

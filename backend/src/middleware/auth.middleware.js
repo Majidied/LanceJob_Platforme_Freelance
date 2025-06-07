@@ -9,15 +9,23 @@ const authenticateJWT = (req, res, next) => {
             if (err) {
                 return res.status(403).json({ message: 'Invalid token' });
             }
-            if (user.status !== 'VERIFIED') {
-                return res.status(403).json({ message: 'User not verified' });
-            }
             req.user = user;
             next();
         });
     } else {
-        res.status(401).json({ message: 'No token provided' });
+        res.status(401).json({ message: 'No token provided'});
     }
 };
 
-module.exports = authenticateJWT;
+const verificationUser = (req, res, next) => {
+    if (req.user && req.user.status === 'VERIFIED') {
+        next();
+    } else {
+        res.status(403).json({ message: 'User not verified' });
+    }
+};
+
+module.exports = {
+    authenticateJWT,
+    verificationUser
+};

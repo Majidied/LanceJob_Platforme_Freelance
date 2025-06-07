@@ -60,6 +60,7 @@ const TOKEN_KEYS = {
    */
   export const getUserData = () => {
     const userData = localStorage.getItem(TOKEN_KEYS.USER_DATA);
+    console.log("User Data:", userData);
     if (!userData) return null;
     try {
       return JSON.parse(userData);

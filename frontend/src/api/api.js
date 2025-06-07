@@ -1,6 +1,6 @@
 import axios from 'axios'
+import { getToken } from '../utils/tokenStorage'
 
-// Notez le préfixe VITE_
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 
 // Créer une instance axios
@@ -15,7 +15,7 @@ const api = axios.create({
 // Intercepteur pour ajouter le token JWT aux requêtes
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('accessToken') // Remplacez par le nom de votre token
+    const token = getToken()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }

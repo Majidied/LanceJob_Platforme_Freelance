@@ -1,13 +1,28 @@
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { hasAccessToken } from '../utils/tokenStorage';
+import useUser from '../hooks/useUser';
 
-export const ProtectedRoute = () => {
+const ProtectedRoute: React.FC = () => {
+  const { isVerified } = useUser();
+  const location = useLocation();
+
+  // 2) If no token, send to login
   if (!hasAccessToken()) {
-    // If not authenticated, redirect to the login page
-    return <Navigate to="/login" />;
+    return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  // If authenticated, render the child routes
+  // 3) If token exists but email not verified, redirect once
+  if (!isVerified && location.pathname !== '/verify-email') {
+    return <Navigate to="/verify-email" replace />;
+  }
+  
+  if (isVerified && location.pathname === '/verify-email') {
+    return <Navigate to="/user" replace />;
+  }
+
+  // 4) Otherwise, render child routes
   return <Outlet />;
 };
+
+export default ProtectedRoute;

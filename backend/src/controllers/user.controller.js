@@ -24,6 +24,7 @@ exports.getUserByToken = async (req, res, next) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      status: user.status,
     };
     res.status(200).json({ data: userData });
   } catch (error) {

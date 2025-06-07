@@ -350,7 +350,7 @@ const SignUpForm = () => {
         {/* Show general error message if registration failed */}
         {isRegisterError && (
           <div className="error-message" style={{ textAlign: 'center', marginBottom: '15px' }}>
-            {registerError || 'Registration failed. Please try again.'}
+            {registerError?.message || registerError?.response?.data?.message || 'Registration failed. Please try again.'}
           </div>
         )}
 
