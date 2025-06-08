@@ -8,5 +8,6 @@ router.get('/:id', freelancerController.getFreelancerById);
 router.post('/', freelancerController.createFreelancer);
 router.put('/:id', freelancerController.updateFreelancer);
 router.delete('/:id', freelancerController.deleteFreelancer);
+router.get('/profile', freelancerController.isCompleteProfile);
 
 module.exports = router;

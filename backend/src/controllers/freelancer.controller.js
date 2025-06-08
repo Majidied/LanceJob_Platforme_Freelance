@@ -53,3 +53,17 @@ exports.deleteFreelancer = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.isCompleteProfile = async (req, res, next) => {
+  try {
+    const freelancer = await freelancerService.getFreelancerById(req.user.id);
+    if (!freelancer) {
+      return res.status(404).json({ message: 'Freelancer not found' });
+    }
+    
+    const isComplete = freelancer.skills && freelancer.experience && freelancer.portfolio;
+    res.status(200).json({ isComplete });
+  } catch (error) {
+    next(error);
+  }
+};

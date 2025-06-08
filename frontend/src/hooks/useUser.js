@@ -25,30 +25,32 @@ export const useUser = () => {
     const hasToken = hasAccessToken();
 
     const {
-        data: user,
+        data: userResponse,
         isLoading: isUserLoading,
         isError,
         error,
-    } = useQuery < User | null > ({
+    } = useQuery({
         queryKey: ['user'],
-        // Correct: pass a function, not a Promise
         queryFn: () => (hasToken ? getUser() : Promise.resolve(null)),
         enabled: hasToken,
         retry: false,
-        refetchOnWindowFocus: true,
-        refetchOnReconnect: true,
-        refetchInterval: hasToken ? 1000 * 60 * 5 : false, // only poll if token exists
+        refetchInterval: hasToken ? 1000 * 60 * 5 : false,
         onError: (err) => {
             console.error('Error fetching user data:', err);
-            clearToken();
-            queryClient.setQueryData(['user'], null);
+            if (err?.response?.status === 401) {
+                clearToken();
+                queryClient.setQueryData(['user'], null);
+            }
         },
         onSuccess: (data) => {
             if (data) {
                 storeUserData(data);
             }
         },
+        select: (response) => response?.data.data || null,
     });
+
+    const user = userResponse;
 
     const { data: verifyPayload, isLoading: isVerifyLoading, refetch: refetchVerification } = useQuery({
     queryKey: ['isVerified'],
@@ -56,6 +58,9 @@ export const useUser = () => {
     enabled: hasAccessToken(),
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    retry: false,
+
   });
 
     // Login mutation
@@ -88,14 +93,18 @@ export const useUser = () => {
         mutationFn: ({ firstName, lastName, email, password, role, agreedToTerms }) =>
             register(firstName, lastName, email, password, role, agreedToTerms),
         onSuccess: (data) => {
-            if (data && data.token) {
+            console.log('Registration successful:', data);
+            if (data && data.token && data.user) {
                 setToken(data.token);
                 storeUserData(data.user);
+                queryClient.setQueryData(['user'], data.user);
+            } else {
+                // fallback: clear any possibly stale data
+                clearToken();
+                clearUserData();
+                queryClient.setQueryData(['user'], null);
             }
             queryClient.invalidateQueries({ queryKey: ['user'] });
-            if (data && data.user) {
-                queryClient.setQueryData(['user'], data.user);
-            }
         }
     });
 

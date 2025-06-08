@@ -24,6 +24,6 @@ exports.deleteUser = async (id) => {
 
 exports.getUserByToken = async (token) => {
   // Assuming you have a method to decode the token and get user ID
-  const userId = jwtUtils.getUserIdByToken(token);
+  const userId = await jwtUtils.getUserIdByToken(token);
   return await User.findById(userId);
 }

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import useUser from '../hooks/useUser';
 import useNotification from '../hooks/useNotification';
 import RoundButton from '../components/Button';
+import LoadingSpinner from './LoadingSpiner';
 
 
 const LoginPage = () => {
@@ -10,7 +11,7 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
-  const { loginUser, isLoginPending, loginError } = useUser();
+  const { loginUser, isLoginPending, loginError  } = useUser();
   const notify = useNotification();
 
 
@@ -18,7 +19,13 @@ const LoginPage = () => {
     e.preventDefault();
     
     try {
-      await loginUser({ email, password });
+      const loginResult = await loginUser({ email, password });
+      
+      if (loginResult?.user.role === 'freelancer') {
+        window.location.href = '/freelancer/home';
+      } else if (loginResult?.role === 'client') {
+        window.location.href = '/user/home';
+      }
       
       // Show success notification
       notify({
@@ -27,8 +34,7 @@ const LoginPage = () => {
         description: 'Welcome back!',
       });
       
-      // Redirect after successful login
-      navigate('/user/home');
+      
     } catch (err) {
       // Show error notification
       notify({
@@ -188,10 +194,11 @@ const LoginPage = () => {
       `}} />
     );
   };
-
+  
   return (
     <>
       {injectStyles()}
+      
       <form id="login-card" onSubmit={handleLogin}>
         <h2 className="login-title">
           Welcome back <span role="img" aria-label="celebration">🎉</span>
@@ -206,6 +213,7 @@ const LoginPage = () => {
             className="form-input"
             placeholder=""
             required
+            disabled={isLoginPending}
           />
         </div>
 
@@ -218,6 +226,7 @@ const LoginPage = () => {
             className="form-input"
             placeholder=""
             required
+            disabled={isLoginPending}
           />
         </div>
 
@@ -229,8 +238,9 @@ const LoginPage = () => {
               checked={rememberMe}
               onChange={() => setRememberMe(!rememberMe)}
               className="hidden-checkbox"
+              disabled={isLoginPending}
             />
-            <label htmlFor="remember-me" onClick={() => setRememberMe(!rememberMe)}>
+            <label htmlFor="remember-me" onClick={() => !isLoginPending && setRememberMe(!rememberMe)}>
               <span className="custom-checkbox"></span>
               <span className="checkbox-label">Remember me</span>
             </label>
@@ -238,8 +248,9 @@ const LoginPage = () => {
 
           <a
             href="#"
-            onClick={handleForgotPassword}
+            onClick={!isLoginPending ? handleForgotPassword : (e) => e.preventDefault()}
             className="forget-link"
+            style={{ opacity: isLoginPending ? 0.5 : 1, pointerEvents: isLoginPending ? 'none' : 'auto' }}
           >
             Forget password?
           </a>
@@ -255,7 +266,12 @@ const LoginPage = () => {
         
 
         <div className="signup-text">
-          Don't have an account? <a href="#" onClick={handleSignUp} className="signup-link">Sign up</a>
+          Don't have an account? <a 
+            href="#" 
+            onClick={!isLoginPending ? handleSignUp : (e) => e.preventDefault()} 
+            className="signup-link"
+            style={{ opacity: isLoginPending ? 0.5 : 1, pointerEvents: isLoginPending ? 'none' : 'auto' }}
+          >Sign up</a>
         </div>
       </form>
     </>

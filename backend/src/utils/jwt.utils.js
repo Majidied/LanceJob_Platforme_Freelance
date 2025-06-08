@@ -41,7 +41,7 @@ const verifyToken = async (token) => {
  */
 const getUserIdByToken = async (token) => {
     try {
-        jwt.verify(token, config.jwtSecret);
+        await jwt.verify(token, config.jwtSecret);
         const userId = await redisClient.get(token);
         return userId || null;
     } catch (error) {

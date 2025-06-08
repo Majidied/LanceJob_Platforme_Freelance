@@ -69,7 +69,10 @@ const logout = async (req, res) => {
 const register = async (req, res) => {
     let user = null;
     try {
-        const { FrisName, LastName, email, password, role } = req.body;
+        const { firstName, lastName, email, password, role } = req.body;
+        // fix FirstName and LastName to ensure they are formatted correctly via capitalize
+        const firstNameFormatted = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+        const lastNameFormatted = lastName.charAt(0).toUpperCase() + lastName.slice(1).toLowerCase();
         const userRole = role === 'freelancer' ? 'freelancer' : 'client';
         const Model = userRole === 'freelancer' ? Freelancer : Client;
         const existingUser = await Model.findOne({ email });
@@ -78,7 +81,7 @@ const register = async (req, res) => {
         }
         const hashedPassword = await bcrypt.hash(password, 10);
         user = new Model({
-            name: `${FrisName} ${LastName}`,
+            name: `${firstNameFormatted} ${lastNameFormatted}`,
             email: email.trim().toLowerCase(),
             password: hashedPassword,
             role: userRole,
@@ -87,8 +90,8 @@ const register = async (req, res) => {
         try {
             const verificationCode = generateVerificationCode(user.id);
             await sendVerificationEmail(email, verificationCode);
-            const token = generateToken(user.id);
-            res.status(201).json({ message: 'User registered successfully. Please check your email for verification.', token });
+            const token = await generateToken(user.id);
+            res.status(201).json({ message: 'User registered successfully. Please check your email for verification.', token: token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
         } catch (innerError) {
             // If sending email or generating code fails, remove the user
             await Model.deleteOne({ _id: user._id });
@@ -224,19 +227,26 @@ const sendPasswordResetEmail = async (req, res) => {
 const isVerified = async (req, res) => {
     try {
         const authHeader = req.headers.authorization;
+        console.log('Authorization header:', authHeader);
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            console.error('Missing or malformed Authorization header');
             return res.status(400).json({ message: 'Authorization header missing or malformed' });
         }
         const token = authHeader.split(' ')[1];
+        console.log('Extracted token:', token);
         const userId = await getUserIdByToken(token);
+        console.log('User ID from token:', userId);
         if (!userId) {
+            console.error('Invalid token');
             return res.status(401).json({ message: 'Invalid token' });
         }
         const user = await User.findById(userId);
+        console.log('User found:', user);
         if (!user) {
+            console.error('User not found');
             return res.status(404).json({ message: 'User not found' });
         }
-        res.json({ isVerified: !!user.status && user.status === 'ACTIVE' });
+        res.json({ isVerified: user.status === 'ACTIVE' });
     } catch (error) {
         console.error('Error checking verification status:', error);
         res.status(500).json({ message: 'An error occurred while checking verification status' });

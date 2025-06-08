@@ -5,7 +5,7 @@ import useUser from '../hooks/useUser';
 import useNotification from '../hooks/useNotification';
 
 const SignUpForm = () => {
-  const [role, setRole] = useState('Freelancer');
+  const [role, setRole] = useState('freelancer');
   const [showRoleMenu, setShowRoleMenu] = useState(false);
   const navigate = useNavigate();
   const notify = useNotification();
@@ -15,6 +15,7 @@ const SignUpForm = () => {
     email: '',
     password: '',
     confirmPassword: '',
+    role: role,
     agreedToTerms: false
   });
   const [errors, setErrors] = useState({});
@@ -332,13 +333,13 @@ const SignUpForm = () => {
               <div className="role-dropdown">
                 <div 
                   className="role-option"
-                  onClick={() => selectRole('Freelancer')}
+                  onClick={() => selectRole('freelancer')}
                 >
                   Freelancer
                 </div>
                 <div 
                   className="role-option"
-                  onClick={() => selectRole('Client')}
+                  onClick={() => selectRole('client')}
                 >
                   Client
                 </div>

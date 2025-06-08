@@ -1,28 +1,33 @@
 import React from 'react';
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { hasAccessToken } from '../utils/tokenStorage';
 import useUser from '../hooks/useUser';
 
-const ProtectedRoute = () => {
-  const { isVerified } = useUser();
+const ProtectedRoute = ({ children, requiredRole, allowUnverified = false }) => {
   const location = useLocation();
+  const { isVerified, user, isLoading } = useUser();
 
-  // 2) If no token, send to login
-  if (!hasAccessToken()) {
-    return <Navigate to="/login" replace state={{ from: location }} />;
+  // Show loading while checking authentication
+  if (isLoading) {
+    return <div>Loading...</div>;
   }
 
-  // 3) If token exists but email not verified, redirect once
-  if (!isVerified && location.pathname !== '/verify-email') {
+  // Check if user has access token
+  if (!hasAccessToken()) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Allow unverified users for certain routes (like profile setup)
+  if (!allowUnverified && !isVerified) {
     return <Navigate to="/verify-email" replace />;
   }
-  
-  if (isVerified && location.pathname === '/verify-email') {
-    return <Navigate to="/user" replace />;
+
+  // Check role requirements
+  if (requiredRole && user?.role !== requiredRole) {
+    return <Navigate to="/unauthorized" replace />;
   }
 
-  // 4) Otherwise, render child routes
-  return <Outlet />;
+  return children;
 };
 
 export default ProtectedRoute;

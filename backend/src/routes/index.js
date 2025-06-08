@@ -9,7 +9,7 @@ const { authenticateJWT, verificationUser} = require('../middleware/auth.middlew
 
 const router = express.Router();
 
-router.use('/users', authenticateJWT, verificationUser, userRoutes);
+router.use('/users', authenticateJWT, userRoutes);
 router.use('/auth', authRoutes);
 router.use('/mission', authenticateJWT, verificationUser, missionRoutes);
 router.use('/freelancer', authenticateJWT, verificationUser, freelancerRoutes);
