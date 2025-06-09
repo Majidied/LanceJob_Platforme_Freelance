@@ -370,3 +370,30 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Error getting collection count for {key}: {e}")
             return 0
+        
+    def track_interaction(self, freelancer_id: str, mission_id: str, interaction_type: str, metadata: Optional[Dict[str, Any]] = None) -> bool:
+        """
+        Track a user interaction with a mission.
+
+        Args:
+        freelancer_id (str): The freelancer's ID.
+        mission_id (str): The mission's ID.
+        interaction_type (str): The type of interaction (e.g., 'view', 'apply', 'like').
+        metadata (Optional[Dict[str, Any]]): Additional metadata for the interaction.
+
+        Returns:
+            bool: True if the interaction was saved successfully, False otherwise.
+        """
+        try:
+            interaction = {
+                "freelancer_id": freelancer_id,
+                "mission_id": mission_id,
+                "type": interaction_type,
+                "timestamp": datetime.now()
+            }
+            if metadata:
+                interaction.update(metadata)
+            return self.save_interaction(interaction)
+        except Exception as e:
+            logger.error(f"Error tracking interaction: {e}")
+            return False

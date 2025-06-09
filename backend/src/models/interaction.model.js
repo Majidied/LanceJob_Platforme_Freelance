@@ -12,25 +12,21 @@ const interactionSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Freelancer',
     required: true,
-    index: true,
   },
   mission_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Mission',
     required: true,
-    index: true,
   },
   interaction_type: {
     type: String,
     enum: ['view', 'click', 'apply', 'save', 'share', 'contact'],
     required: true,
-    index: true,
   },
   timestamp: {
     type: Date,
     default: Date.now,
     required: true,
-    index: true,
   },
   metadata: {
     userAgent: String,

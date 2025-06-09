@@ -145,7 +145,7 @@ chmod +x start_platform.sh
    npm run dev
    ```
 
-5. Access the application at `http://localhost:5173`
+5. Access the application at `http://localhost:5000`
 
 ## 📁 Project Structure
 
@@ -242,7 +242,7 @@ LanceJob features a sophisticated hybrid recommendation engine that combines con
 
 ### API Endpoints
 
-#### Recommendation Engine (Python Flask - Port 5001)
+#### Recommendation Engine (Python Flask - Port 2511)
 
 ```bash
 # Get personalized recommendations
@@ -611,11 +611,11 @@ For manual deployment without Docker:
 ```bash
 # Application
 NODE_ENV=production
-PORT=5000
+PORT=3000
 API_URL=https://yourdomain.com
 
 # Database
-MONGODB_URI=mongodb://username:password@host:27017/lancejob
+MONGODB_URI=mongodb://username:password@host:27017/lancejob_db
 REDIS_URL=redis://password@host:6379/0
 
 # Security
@@ -648,7 +648,7 @@ EMAIL_PASS=your-email-password
 
 ```bash
 # MongoDB backup
-mongodump --uri="mongodb://username:password@host:27017/lancejob" --out=/backup/mongodb/$(date +%Y%m%d)
+mongodump --uri="mongodb://username:password@host:27017/lancejob_db" --out=/backup/mongodb/$(date +%Y%m%d)
 
 # Redis backup
 redis-cli --rdb /backup/redis/dump-$(date +%Y%m%d).rdb
@@ -666,7 +666,7 @@ tar -czf "$BACKUP_DIR.tar.gz" "$BACKUP_DIR"
 
 ```bash
 # Restore MongoDB
-mongorestore --uri="mongodb://username:password@host:27017/lancejob" /backup/mongodb/lancejob
+mongorestore --uri="mongodb://username:password@host:27017/lancejob_db" /backup/mongodb/lancejob_db
 
 # Restore Redis
 redis-cli FLUSHALL

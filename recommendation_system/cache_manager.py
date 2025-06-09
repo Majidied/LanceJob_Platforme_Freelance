@@ -263,3 +263,16 @@ class CacheManager:
         except Exception as e:
             logger.error(f"Error clearing all cache: {e}")
             return False
+        
+    def delete(self, key: str) -> bool:
+        """Delete a specific cache key (raw Redis key)"""
+        if not self.is_available():
+            return False
+
+        try:
+            deleted_count = self.redis_client.delete(key)
+            logger.info(f"Deleted cache key '{key}', deleted {deleted_count} entries")
+            return deleted_count > 0
+        except Exception as e:
+            logger.error(f"Error deleting cache key '{key}': {e}")
+            return False

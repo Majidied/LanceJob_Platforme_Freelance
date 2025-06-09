@@ -7,12 +7,12 @@ load_dotenv()
 
 class Config:
     # Database Configuration
-    MONGODB_URI = os.getenv('MONGODB_URI', 'mongodb://localhost:27017/lancejob')
+    MONGODB_URI = os.getenv('MONGODB_URI', 'mongodb://localhost:27017/lancejob_db')
     REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379')
     
     # Flask Configuration
     FLASK_ENV = os.getenv('FLASK_ENV', 'development')
-    FLASK_PORT = int(os.getenv('FLASK_PORT', 5001))
+    FLASK_PORT = int(os.getenv('FLASK_PORT', 2511))
     DEBUG = FLASK_ENV == 'development'
     
     # Logging Configuration

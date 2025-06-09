@@ -9,7 +9,7 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: password123
-      MONGO_INITDB_DATABASE: lancejob
+      MONGO_INITDB_DATABASE: lancejob_db
     ports:
       - "27017:27017"
     volumes:
@@ -49,12 +49,12 @@ services:
     container_name: lancejob-recommendation-api
     restart: unless-stopped
     environment:
-      - MONGODB_URI=mongodb://admin:password123@mongodb:27017/lancejob?authSource=admin
+      - MONGODB_URI=mongodb://admin:password123@mongodb:27017/lancejob_db?authSource=admin
       - REDIS_URL=redis://:password123@redis:6379/0
       - FLASK_ENV=production
       - LOG_LEVEL=info
     ports:
-      - "5001:5001"
+      - "2511:2511"
     volumes:
       - recommendation_logs:/app/logs
       - recommendation_models:/app/models
@@ -64,7 +64,7 @@ services:
     networks:
       - lancejob-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5001/api/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:2511/api/health"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -78,15 +78,15 @@ services:
     restart: unless-stopped
     environment:
       - NODE_ENV=production
-      - MONGODB_URI=mongodb://admin:password123@mongodb:27017/lancejob?authSource=admin
+      - MONGODB_URI=mongodb://admin:password123@mongodb:27017/lancejob_db?authSource=admin
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=password123
-      - RECOMMENDATION_API_URL=http://recommendation-api:5001
+      - RECOMMENDATION_API_URL=http://recommendation-api:2511
       - JWT_SECRET=your-super-secret-jwt-key-change-in-production
-      - PORT=5000
+      - PORT=3000
     ports:
-      - "5000:5000"
+      - "3000:3000"
     volumes:
       - backend_logs:/app/logs
     depends_on:
@@ -109,7 +109,7 @@ services:
     container_name: lancejob-frontend
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "5000:80"
     depends_on:
       - backend
     networks:
@@ -128,7 +128,7 @@ services:
     container_name: lancejob-batch-processor
     restart: unless-stopped
     environment:
-      - MONGODB_URI=mongodb://admin:password123@mongodb:27017/lancejob?authSource=admin
+      - MONGODB_URI=mongodb://admin:password123@mongodb:27017/lancejob_db?authSource=admin
       - REDIS_URL=redis://:password123@redis:6379/0
       - BATCH_MODE=true
       - LOG_LEVEL=info

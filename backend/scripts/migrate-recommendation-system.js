@@ -40,19 +40,33 @@ async function createIndexes() {
     ]);
     console.log('✅ Mission indexes created');
 
-    // Interaction model indexes
-    await Interaction.collection.createIndexes([
-      { key: { user_id: 1 } },
-      { key: { mission_id: 1 } },
-      { key: { interaction_type: 1 } },
-      { key: { timestamp: 1 } },
-      { key: { user_id: 1, timestamp: -1 } },
-      { key: { mission_id: 1, timestamp: -1 } },
-      { key: { user_id: 1, interaction_type: 1 } },
-      { key: { timestamp: 1 }, expireAfterSeconds: 7776000 }, // TTL: 90 days
-      { key: { user_id: 1, mission_id: 1, interaction_type: 1 } }
-    ]);
-    console.log('✅ Interaction indexes created');
+    // Handle Interaction model indexes with conflict resolution
+    try {
+      // First, try to drop the conflicting TTL index if it exists
+      try {
+        await Interaction.collection.dropIndex('timestamp_1');
+        console.log('Dropped existing timestamp index');
+      } catch (dropError) {
+        // Index might not exist, which is fine
+        console.log('No existing timestamp index to drop');
+      }
+
+      // Create Interaction indexes with correct field names
+      await Interaction.collection.createIndexes([
+        { key: { freelancer_id: 1 } },
+        { key: { mission_id: 1 } },
+        { key: { interaction_type: 1 } },
+        { key: { timestamp: 1 } },
+        { key: { freelancer_id: 1, timestamp: -1 } },
+        { key: { mission_id: 1, timestamp: -1 } },
+        { key: { freelancer_id: 1, interaction_type: 1 } },
+        { key: { timestamp: 1 }, expireAfterSeconds: 7776000 }, // TTL: 90 days
+        { key: { freelancer_id: 1, mission_id: 1, interaction_type: 1 } }
+      ]);
+      console.log('✅ Interaction indexes created');
+    } catch (interactionError) {
+      console.warn('⚠️ Some interaction indexes may already exist:', interactionError.message);
+    }
 
     console.log('✅ All indexes created successfully');
   } catch (error) {
@@ -213,7 +227,7 @@ async function createSampleData() {
     await Mission.insertMany(missions);
     console.log('✅ Sample missions created');
 
-    // Create sample interactions
+    // Create sample interactions with correct field names
     const interactions = [];
     for (let i = 0; i < 200; i++) {
       const freelancer = freelancers[Math.floor(Math.random() * freelancers.length)];
@@ -222,7 +236,7 @@ async function createSampleData() {
       const interactionType = interactionTypes[Math.floor(Math.random() * interactionTypes.length)];
       
       const interaction = new Interaction({
-        user_id: freelancer._id,
+        freelancer_id: freelancer._id,
         mission_id: mission._id,
         interaction_type: interactionType,
         timestamp: new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000),
@@ -249,7 +263,7 @@ async function createSampleData() {
 async function runMigration() {
   try {
     // Connect to MongoDB
-    const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/lancejob';
+    const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/lancejob_db';
     await mongoose.connect(MONGODB_URI);
     console.log('✅ Connected to MongoDB');
 

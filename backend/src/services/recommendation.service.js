@@ -11,7 +11,7 @@ const logger = require('../utils/logger');
 
 class RecommendationService {
   constructor() {
-    this.apiBaseUrl = process.env.RECOMMENDATION_API_URL || 'http://127.0.0.1:5000';
+    this.apiBaseUrl = process.env.RECOMMENDATION_API_URL || 'http://127.0.0.1:2511';
     this.timeout = parseInt(process.env.RECOMMENDATION_API_TIMEOUT) || 30000;
     
     // Create axios instance with default config

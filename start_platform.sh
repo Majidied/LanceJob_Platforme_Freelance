@@ -158,16 +158,16 @@ show_status() {
         echo -e "Backend (Port 3000): ${GREEN}Running${NC}"
     fi
     
-    if check_port 5173; then
-        echo -e "Frontend (Port 5173): ${RED}Stopped${NC}"
+    if check_port 5000; then
+        echo -e "Frontend (Port 5000): ${RED}Stopped${NC}"
     else
-        echo -e "Frontend (Port 5173): ${GREEN}Running${NC}"
+        echo -e "Frontend (Port 5000): ${GREEN}Running${NC}"
     fi
     
-    if check_port 5000; then
-        echo -e "Recommendation API (Port 5000): ${RED}Stopped${NC}"
+    if check_port 2511; then
+        echo -e "Recommendation API (Port 2511): ${RED}Stopped${NC}"
     else
-        echo -e "Recommendation API (Port 5000): ${GREEN}Running${NC}"
+        echo -e "Recommendation API (Port 2511): ${GREEN}Running${NC}"
     fi
     
     echo "=================================="
@@ -195,7 +195,7 @@ case "$1" in
         fi
         
         # Start Recommendation API
-        start_service "Recommendation API" "source venv/bin/activate && python api_server.py" "$RECOMMENDATION_DIR" 5000
+        start_service "Recommendation API" "source venv/bin/activate && python api_server.py" "$RECOMMENDATION_DIR" 2511
         sleep 3
         
         # Start Backend API
@@ -203,7 +203,7 @@ case "$1" in
         sleep 3
         
         # Start Frontend
-        start_service "Frontend" "npm run dev" "$FRONTEND_DIR" 5173
+        start_service "Frontend" "npm run dev" "$FRONTEND_DIR" 5000
         sleep 3
         
         echo "=========================================="
