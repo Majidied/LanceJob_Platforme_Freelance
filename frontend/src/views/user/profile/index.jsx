@@ -31,7 +31,7 @@ const Profile = () => {
         setIsLoading(true);
         
         // Récupérer l'ID du client depuis l'URL (si disponible)
-        let clientId='682bb6d5799bb3e67ea05392';
+        let clientId='6845d22ffeb2f7765790613c';
         
         const data = await getClient(clientId);
 

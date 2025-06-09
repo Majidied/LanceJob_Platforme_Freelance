@@ -31,13 +31,9 @@ const userSchema = new mongoose.Schema({
     enum: ['ACTIVE', 'NOT_VERIFIED', 'SUSPENDED'],
     default: 'NOT_VERIFIED',
   },
-<<<<<<< HEAD
-}, {
-=======
 
 },
  {
->>>>>>> origin/sawssan02
   discriminatorKey: 'role', 
   timestamps: true 
 });
