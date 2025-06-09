@@ -1,4 +1,4 @@
-// FreelancerContext.jsx - Version sans boucle infinie
+// FreelancerContext.jsx - Version avec amélioration saved jobs
 import React, { createContext, useState, useEffect, useContext, useCallback, useRef } from 'react';
 import { freelancerAPI } from '../api/freelancer';
 
@@ -24,7 +24,7 @@ export const FreelancerProvider = ({ children }) => {
 
   // ✅ UTILISER L'ID DU FREELANCER DE VOTRE BASE DE DONNÉES
   const [currentFreelancerId, setCurrentFreelancerId] = useState(
-    '6827bfa3d446471922fc632b'
+    '6830ee0e4fc7edee46cf57ea'
   );
 
   // ✅ Refs pour éviter les appels multiples
@@ -32,6 +32,22 @@ export const FreelancerProvider = ({ children }) => {
   const isFetchingOffers = useRef(false);
   const isFetchingJobs = useRef(false);
   const isFetchingSavedJobs = useRef(false);
+
+  // ✅ Fonction utilitaire pour synchroniser l'état saved des jobs
+  const syncJobsSavedStatus = useCallback((jobsList, savedJobsList) => {
+    if (!Array.isArray(jobsList) || !Array.isArray(savedJobsList)) {
+      return jobsList;
+    }
+    
+    const savedJobIds = savedJobsList.map(savedJob => 
+      savedJob._id || savedJob.id || savedJob
+    );
+    
+    return jobsList.map(job => ({
+      ...job,
+      isSaved: savedJobIds.includes(job._id)
+    }));
+  }, []);
 
   // ✅ Mémoriser les fonctions avec useCallback pour éviter les re-renders
   const fetchJobs = useCallback(async () => {
@@ -48,17 +64,20 @@ export const FreelancerProvider = ({ children }) => {
       const response = await freelancerAPI.getJobs();
       const jobsData = response.data?.data || response.data || response;
       
-      const savedJobsLocal = JSON.parse(localStorage.getItem('savedJobs') || '[]');
-      const jobsWithSaveStatus = jobsData.map(job => ({
+      // Préparer les jobs avec des valeurs par défaut
+      const jobsWithDefaults = jobsData.map(job => ({
         ...job,
-        isSaved: savedJobsLocal.includes(job._id),
         price: job.budget || job.price,
         timeline: job.deadline ? new Date(job.deadline).toLocaleDateString('fr-FR') : job.timeline,
         priceType: job.type || job.priceType || 'Fixed',
         experienceLevel: job.experience || job.experienceLevel || 'Intermediate',
         skills: job.tags || job.skills || [],
-        currency: job.currency || 'MAD'
+        currency: job.currency || 'MAD',
+        isSaved: false // Sera mis à jour par syncJobsSavedStatus
       }));
+      
+      // Synchroniser avec les saved jobs actuels
+      const jobsWithSaveStatus = syncJobsSavedStatus(jobsWithDefaults, savedJobs);
       
       setJobs(jobsWithSaveStatus);
       setError(prev => ({ ...prev, jobs: null }));
@@ -73,7 +92,7 @@ export const FreelancerProvider = ({ children }) => {
       setLoading(prev => ({ ...prev, jobs: false }));
       isFetchingJobs.current = false;
     }
-  }, []); // Pas de dépendances pour éviter les boucles
+  }, [savedJobs, syncJobsSavedStatus]);
 
   const fetchSavedJobs = useCallback(async () => {
     if (!currentFreelancerId || isFetchingSavedJobs.current) {
@@ -91,7 +110,12 @@ export const FreelancerProvider = ({ children }) => {
       
       const response = await freelancerAPI.getSavedJobs(currentFreelancerId);
       const savedJobsData = response.data?.data || response.data || response;
+      
       setSavedJobs(savedJobsData);
+      
+      // ✅ Synchroniser l'état des jobs après avoir récupéré les saved jobs
+      setJobs(prevJobs => syncJobsSavedStatus(prevJobs, savedJobsData));
+      
       setError(prev => ({ ...prev, savedJobs: null }));
       console.log('✅ Saved jobs fetched successfully:', savedJobsData.length);
     } catch (err) {
@@ -104,7 +128,7 @@ export const FreelancerProvider = ({ children }) => {
       setLoading(prev => ({ ...prev, savedJobs: false }));
       isFetchingSavedJobs.current = false;
     }
-  }, [currentFreelancerId]);
+  }, [currentFreelancerId, syncJobsSavedStatus]);
 
   const fetchApplications = useCallback(async () => {
     if (!currentFreelancerId || isFetchingApplications.current) {
@@ -310,13 +334,18 @@ export const FreelancerProvider = ({ children }) => {
     }
   }, [currentFreelancerId]);
 
-  // ✅ Mémoriser les autres fonctions
+  // ✅ Amélioration de toggleSaveJob avec synchronisation
   const toggleSaveJob = useCallback(async (missionId) => {
     try {
       if (currentFreelancerId) {
         const response = await freelancerAPI.toggleSaveJob(currentFreelancerId, missionId);
+        
+        // Rafraîchir les saved jobs depuis le serveur
         await fetchSavedJobs();
+        
+        return response.data?.message || 'Job save status updated successfully';
       } else {
+        // Logique localStorage (fallback)
         const savedJobsLocal = JSON.parse(localStorage.getItem('savedJobs') || '[]');
         const isCurrentlySaved = savedJobsLocal.includes(missionId);
         
@@ -329,17 +358,18 @@ export const FreelancerProvider = ({ children }) => {
         
         localStorage.setItem('savedJobs', JSON.stringify(updatedSavedJobs));
         setSavedJobs(updatedSavedJobs);
+        
+        // Mettre à jour l'état isSaved dans la liste des jobs
+        setJobs(prev => 
+          prev.map(job => 
+            job._id === missionId 
+              ? { ...job, isSaved: !job.isSaved } 
+              : job
+          )
+        );
+        
+        return 'Job save status updated successfully';
       }
-      
-      setJobs(prev => 
-        prev.map(job => 
-          job._id === missionId 
-            ? { ...job, isSaved: !job.isSaved } 
-            : job
-        )
-      );
-      
-      return 'Job save status updated successfully';
     } catch (err) {
       console.error('Error toggling save job:', err);
       throw new Error(err.response?.data?.message || 'Error saving job');
