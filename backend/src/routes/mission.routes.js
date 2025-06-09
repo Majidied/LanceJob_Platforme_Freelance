@@ -8,5 +8,7 @@ router.get('/:id', missionController.getMissionById);
 router.post('/', missionController.createMission);
 router.put('/:id', missionController.updateMission);
 router.delete('/:id', missionController.deleteMission);
+router.put('/:missionId/applications/:applicationId', missionController.updateApplicationStatus);
+
 
 module.exports = router;
