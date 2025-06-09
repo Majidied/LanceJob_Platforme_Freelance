@@ -124,16 +124,7 @@ const Home = () => {
           ))}
         </div>
         
-        {/* Indicateur du nombre de jobs et du tri actuel */}
-        <div className="flex justify-between items-center mt-2 px-4 text-sm text-gray-500">
-          <span>{sortedJobs.length} mission{sortedJobs.length > 1 ? 's' : ''} disponible{sortedJobs.length > 1 ? 's' : ''}</span>
-          <span>
-            {activeTab === 'mostRecent' 
-              ? 'Triées par date (plus récentes en premier)' 
-              : 'Triées par pertinence (budget élevé en premier)'
-            }
-          </span>
-        </div>
+      
       </div>
       
       {/* Job Listings */}
