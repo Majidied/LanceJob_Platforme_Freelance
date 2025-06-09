@@ -1,7 +1,7 @@
 import React, { useState,useEffect } from 'react';
 import { Clock, MapPin, Briefcase, DollarSign, Users, ChevronLeft, Star, Calendar, MessageCircle, User, FilePlus, Check, X ,Plus} from 'lucide-react';
 import { Link } from "react-router-dom";
-import { fetchMissions, updateMission } from '../../../api/mission';
+import { fetchMissions, updateMission ,updateApplicationStatus} from '../../../api/mission';
 import { getFreelancer } from '../../../api/freelancer';
 
 const MyOffers = () => {
@@ -62,40 +62,48 @@ const fetchFreelancers = async () => {
     setSelectedOffer(null);
   };
   // Fonction complètement nouvelle pour embaucher un freelancer
-const handleHireFreelancer = async (freelancerId, applicantId) => {
+const handleHireFreelancer = async (freelancerId, applicantId, currentApplicationId) => {
   try {
     setLoading(true);
-    
+
+    // 1. Mise à jour de la mission
     const updatedMissionData = {
       assignedTo: freelancerId,
-      status: 'assigned'
+      status: 'assigned',
     };
-    
     await updateMission(selectedOffer._id, updatedMissionData);
-    
-    // Mise à jour de l'état local
+
+    // 2. Mise à jour du statut de l'application
+    await updateApplicationStatus(selectedOffer._id, applicantId, 'accepted',currentApplicationId);
+
+    // 3. Mise à jour de l’état local
     const updatedOffer = {
       ...selectedOffer,
       assignedTo: freelancerId,
-      status: 'assigned'
+      status: 'assigned',
+      applications: selectedOffer.applications.map(app =>
+        app._id === applicantId
+          ? { ...app, status: 'accepted' }
+          : app
+      ),
     };
-    
+
     setSelectedOffer(updatedOffer);
-    setOffers(prevOffers => 
-      prevOffers.map(offer => 
+    setOffers(prevOffers =>
+      prevOffers.map(offer =>
         offer._id === selectedOffer._id ? updatedOffer : offer
       )
     );
-    
+
     alert('Freelancer embauché avec succès!');
-    
   } catch (error) {
-    console.error('Erreur lors de l\'embauche du freelancer:', error);
-    alert('Erreur lors de l\'embauche du freelancer');
+    console.error("Erreur lors de l'embauche du freelancer:", error);
+    alert("Erreur lors de l'embauche du freelancer");
   } finally {
     setLoading(false);
   }
 };
+
 
   // If an offer is selected, show applicants
   if (selectedOffer) {
@@ -189,6 +197,9 @@ const handleHireFreelancer = async (freelancerId, applicantId) => {
               const freelancer = freelancers[applicant.freelancer] || {};
               const freelancerData = freelancer.data || {};
               const isAssigned = selectedOffer.assignedTo === applicant.freelancer;
+              const currentApplicationId = freelancerData.appliedMissions?.find(
+                mission => mission.mission === selectedOffer._id
+              )?._id;
               return (
               <div key={applicant.freelancer} className="overflow-hidden bg-white shadow-sm rounded-xl">
                 <div className="p-5">
@@ -233,7 +244,7 @@ const handleHireFreelancer = async (freelancerId, applicantId) => {
                       </button>
                      {!selectedOffer.assignedTo ? (
                           <button 
-                            onClick={() => handleHireFreelancer(applicant.freelancer, applicant._id)}
+                            onClick={() => handleHireFreelancer(applicant.freelancer, applicant._id,currentApplicationId)}
                             disabled={loading}
                             className="px-4 py-2 text-sm font-medium text-white transition-colors bg-[#86C1A3] rounded-md hover:bg-[#5f9478] disabled:opacity-50 disabled:cursor-not-allowed"
                           >
@@ -336,7 +347,12 @@ const handleHireFreelancer = async (freelancerId, applicantId) => {
                 </div>
                 <div className="flex flex-col">
                   <span className="text-xs font-medium text-slate-500">Duration</span>
-                  <span className="text-sm font-semibold text-slate-800">{new Date(offer.deadline).toISOString().slice(0, 10)}</span>
+                  <span className="text-sm font-semibold text-slate-800">  {offer.deadline && !isNaN(new Date(offer.deadline)) ? (
+                  new Date(offer.deadline).toISOString().split('T')[0]
+                ) : (
+                  'Date invalide'
+                )}
+                </span>
                 </div>
                 <div className="flex flex-col">
                   <span className="text-xs font-medium text-slate-500">Experience</span>

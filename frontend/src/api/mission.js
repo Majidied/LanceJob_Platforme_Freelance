@@ -28,7 +28,7 @@ export const getMissionApplications = async (missionId) => {
 };
 
 // Service pour mettre à jour le statut d'une candidature
-export const updateApplicationStatus = async (missionId, applicationId, status) => {
-  const response = await api.put(`/mission/${missionId}/applications/${applicationId}`, { status });
+export const updateApplicationStatus = async (missionId, applicationId, status,currentApplicationId) => {
+  const response = await api.put(`/mission/${missionId}/applications/${applicationId}`, { status,currentApplicationId });
   return response.data;
 };

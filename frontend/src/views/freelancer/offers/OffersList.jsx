@@ -73,7 +73,7 @@ const OffersList = ({ onViewDetails }) => {
       status: item.status || 'pending',
       skills: Array.isArray(item.skills) ? item.skills : [],
       currency: item.currency || 'MAD',
-      timeline: item.timeline || (item.deliveryTime ? `${item.deliveryTime} jours` : 'Non spécifié'),
+      timeline: item.timeline || (item.deliveryTime ? `${item.deliveryTime}` : 'Non spécifié'),
       // ✅ Toujours utiliser les mêmes champs puisque c'est les mêmes données
       submittedDate: item.createdAt || item.offerDate || item.appliedAt || item.applicationDate || new Date().toISOString(),
       description: item.offerDescription || item.description || item.coverLetter || item.message || '',
@@ -126,7 +126,7 @@ const OffersList = ({ onViewDetails }) => {
       
       if (diffInDays === 0) return "Aujourd'hui";
       if (diffInDays === 1) return "Hier";
-      if (diffInDays < 7) return `Il y a ${diffInDays} jours`;
+      if (diffInDays < 7) return `Il y a ${diffInDays}`;
       if (diffInDays < 30) return `Il y a ${Math.floor(diffInDays / 7)} semaines`;
       return formatDate(dateString);
     } catch (e) {
@@ -164,7 +164,7 @@ const OffersList = ({ onViewDetails }) => {
     return (
       <div className="p-6">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+          <div className="w-12 h-12 mx-auto border-b-2 border-blue-500 rounded-full animate-spin"></div>
           <p className="mt-4 text-gray-600">
             Chargement des offres...
           </p>
@@ -176,11 +176,11 @@ const OffersList = ({ onViewDetails }) => {
   if (currentError) {
     return (
       <div className="p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="p-4 border border-red-200 rounded-lg bg-red-50">
           <p className="text-red-600">Erreur: {currentError}</p>
           <button 
             onClick={handleRefresh}
-            className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            className="px-4 py-2 mt-2 text-white bg-red-600 rounded hover:bg-red-700"
           >
             Réessayer
           </button>
@@ -191,9 +191,9 @@ const OffersList = ({ onViewDetails }) => {
 
   if (!currentFreelancerId) {
     return (
-      <div className="text-center p-8">
-        <h3 className="text-lg font-semibold text-gray-600 mb-2">Authentification requise</h3>
-        <p className="text-gray-500 mb-4">
+      <div className="p-8 text-center">
+        <h3 className="mb-2 text-lg font-semibold text-gray-600">Authentification requise</h3>
+        <p className="mb-4 text-gray-500">
           Vous devez être connecté pour voir vos candidatures et offres.
         </p>
         <button 
@@ -241,7 +241,7 @@ const OffersList = ({ onViewDetails }) => {
         
         <button
           onClick={handleRefresh}
-          className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors"
+          className="flex items-center gap-2 px-3 py-2 text-gray-600 transition-colors rounded-md hover:text-gray-800 hover:bg-gray-100"
           title="Actualiser"
         >
           <RefreshCw size={16} />
@@ -255,7 +255,7 @@ const OffersList = ({ onViewDetails }) => {
           <div className="mb-4">
             {activeTab === 'candidatures' ? (
               <>
-                <h3 className="text-lg font-semibold text-gray-600 mb-2">Aucune candidature</h3>
+                <h3 className="mb-2 text-lg font-semibold text-gray-600">Aucune candidature</h3>
                 <p className="text-gray-500">
                   Vous n'avez pas encore de candidatures à afficher. 
                   <br />
@@ -264,7 +264,7 @@ const OffersList = ({ onViewDetails }) => {
               </>
             ) : (
               <>
-                <h3 className="text-lg font-semibold text-gray-600 mb-2">Aucune offre reçue</h3>
+                <h3 className="mb-2 text-lg font-semibold text-gray-600">Aucune offre reçue</h3>
                 <p className="text-gray-500">
                   Vous n'avez pas encore reçu d'offres de clients.
                 </p>
@@ -294,7 +294,7 @@ const OffersList = ({ onViewDetails }) => {
                     
                     
                   </div>
-                  <p className="text-sm text-gray-600 mb-2">
+                  <p className="mb-2 text-sm text-gray-600">
                     Client: {displayItem.clientName}
                   </p>
                   {displayItem.description && (
@@ -322,7 +322,7 @@ const OffersList = ({ onViewDetails }) => {
               )}
               
               {/* Prix et délai */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+              <div className="grid grid-cols-1 gap-4 mt-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="flex items-center gap-2">
                   <DollarSign size={16} className="text-gray-400" />
                   <div>
@@ -353,10 +353,10 @@ const OffersList = ({ onViewDetails }) => {
               </div>
               
               {/* Actions */}
-              <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
+              <div className="flex items-center justify-between pt-4 mt-6 border-t border-gray-200">
                 <button 
                   onClick={() => onViewDetails && onViewDetails(displayItem._id, displayItem)}
-                  className="flex items-center gap-2 text-sm font-medium text-blue-500 hover:text-blue-700 transition-colors"
+                  className="flex items-center gap-2 text-sm font-medium text-blue-500 transition-colors hover:text-blue-700"
                 >
                   <Eye size={16} />
                   Voir les détails
