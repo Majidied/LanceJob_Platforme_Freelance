@@ -1,48 +1,7 @@
-// frontend/src/views/freelancer/offers/OffersList.jsx - CORRECTION SIMPLE
+// frontend/src/views/freelancer/offers/OffersList.jsx - VERSION SANS DEBUG
 import React, { useEffect, useState, useRef } from 'react';
 import { useFreelancer } from '../../../context/FreelancerContext';
 import { Eye, MessageCircle, Calendar, DollarSign, Clock, RefreshCw } from 'lucide-react';
-
-const DebugApplications = ({ appliedJobs }) => {
-  if (process.env.NODE_ENV !== 'development') return null;
-  
-  return (
-    <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-      <h3 className="font-bold text-yellow-800 mb-2">🐛 Debug - Données brutes des candidatures</h3>
-      
-      {appliedJobs && appliedJobs.length > 0 ? (
-        <div className="space-y-3">
-          {appliedJobs.slice(0, 2).map((app, index) => (
-            <div key={index} className="p-3 bg-white rounded border">
-              <h4 className="font-semibold text-sm mb-2">Candidature {index + 1}:</h4>
-              <div className="text-xs space-y-1">
-                <div><strong>_id:</strong> {app._id}</div>
-                <div><strong>missionTitle:</strong> {app.missionTitle}</div>
-                <div><strong>proposedPrice:</strong> {app.proposedPrice} (type: {typeof app.proposedPrice})</div>
-                <div><strong>offerPrice:</strong> {app.offerPrice} (type: {typeof app.offerPrice})</div>
-                <div><strong>appliedAt:</strong> {app.appliedAt}</div>
-                <div><strong>submittedDate:</strong> {app.submittedDate}</div>
-                <div><strong>currency:</strong> {app.currency}</div>
-                <div><strong>status:</strong> {app.status}</div>
-                <div><strong>timeline:</strong> {app.timeline}</div>
-                <div><strong>deliveryTime:</strong> {app.deliveryTime}</div>
-              </div>
-              
-              <details className="mt-2">
-                <summary className="cursor-pointer text-xs font-semibold">Voir objet complet</summary>
-                <pre className="text-xs mt-2 p-2 bg-gray-100 rounded overflow-auto max-h-40">
-                  {JSON.stringify(app, null, 2)}
-                </pre>
-              </details>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="text-yellow-700">Aucune candidature trouvée</p>
-      )}
-    </div>
-  );
-};
 
 const statusColors = {
   "pending": "bg-yellow-100 text-yellow-800",
@@ -66,7 +25,7 @@ const statusLabels = {
 };
 
 const OffersList = ({ onViewDetails }) => {
-  const [activeTab, setActiveTab] = useState('applications');
+  const [activeTab, setActiveTab] = useState('candidatures');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
@@ -84,7 +43,7 @@ const OffersList = ({ onViewDetails }) => {
     currentFreelancerId 
   } = useFreelancer();
 
-  // ✅ Fonction de refresh manuelle uniquement
+  // ✅ Fonction de refresh manuelle - SEULEMENT POUR LES OFFERS
   const handleRefresh = () => {
     const now = Date.now();
     if ((now - lastFetchTime.current) < 2000) {
@@ -96,19 +55,16 @@ const OffersList = ({ onViewDetails }) => {
     lastFetchTime.current = now;
     
     if (currentFreelancerId) {
-      fetchApplications();
-      fetchOffers();
+      fetchOffers(); // Seulement les offers puisque les deux onglets utilisent les mêmes données
     }
   };
 
-  // ✅ FONCTION SANITIZE CORRIGÉE POUR LES CANDIDATURES
+  // ✅ FONCTION SANITIZE - MAINTENANT TRAITE TOUJOURS LES MÊMES DONNÉES (offers)
   const sanitizeItem = (item, index) => {
     if (!item || typeof item !== 'object') {
       console.warn(`Item à l'index ${index} est invalide:`, item);
       return null;
     }
-
-    console.log(`🔍 Sanitizing ${activeTab} item ${index}:`, item);
 
     const sanitized = {
       _id: item._id || item.id || `temp-${index}-${Date.now()}`,
@@ -118,43 +74,27 @@ const OffersList = ({ onViewDetails }) => {
       skills: Array.isArray(item.skills) ? item.skills : [],
       currency: item.currency || 'MAD',
       timeline: item.timeline || (item.deliveryTime ? `${item.deliveryTime} jours` : 'Non spécifié'),
-      // ✅ CORRECTION DATE : appliedAt en premier pour les candidatures
-      submittedDate: item.appliedAt || item.applicationDate || item.createdAt || new Date().toISOString(),
-      description: item.offerDescription || item.coverLetter || item.description || '',
-      isApplication: Boolean(item.isApplication || activeTab === 'applications')
+      // ✅ Toujours utiliser les mêmes champs puisque c'est les mêmes données
+      submittedDate: item.createdAt || item.offerDate || item.appliedAt || item.applicationDate || new Date().toISOString(),
+      description: item.offerDescription || item.description || item.coverLetter || item.message || '',
+      isApplication: activeTab === 'candidatures' // Juste pour l'affichage visuel
     };
 
-    // ✅ CORRECTION PRIX : proposedPrice en priorité pour les candidatures
-    if (activeTab === 'applications') {
-      // Pour les candidatures
-      if (typeof item.proposedPrice === 'number' && item.proposedPrice > 0) {
-        sanitized.price = item.proposedPrice;
-        console.log(`💰 Candidature ${index} - Using proposedPrice: ${item.proposedPrice}`);
-      } else if (typeof item.offerPrice === 'number' && item.offerPrice > 0) {
-        sanitized.price = item.offerPrice;
-        console.log(`💰 Candidature ${index} - Using offerPrice: ${item.offerPrice}`);
+    // ✅ GESTION DU PRIX - TOUJOURS LA MÊME LOGIQUE
+    if (typeof item.offerPrice === 'number' && !isNaN(item.offerPrice)) {
+      sanitized.price = item.offerPrice;
+    } else if (typeof item.proposedPrice === 'number' && !isNaN(item.proposedPrice)) {
+      sanitized.price = item.proposedPrice;
+    } else {
+      const priceStr = item.offerPrice || item.proposedPrice;
+      if (typeof priceStr === 'string') {
+        const parsed = parseFloat(priceStr);
+        sanitized.price = !isNaN(parsed) ? parsed : 0;
       } else {
         sanitized.price = 0;
-        console.warn(`❌ Candidature ${index} - No valid price found:`, item);
-      }
-    } else {
-      // Pour les offres (logique existante)
-      if (typeof item.offerPrice === 'number' && !isNaN(item.offerPrice)) {
-        sanitized.price = item.offerPrice;
-      } else if (typeof item.proposedPrice === 'number' && !isNaN(item.proposedPrice)) {
-        sanitized.price = item.proposedPrice;
-      } else {
-        const priceStr = item.offerPrice || item.proposedPrice;
-        if (typeof priceStr === 'string') {
-          const parsed = parseFloat(priceStr);
-          sanitized.price = !isNaN(parsed) ? parsed : 0;
-        } else {
-          sanitized.price = 0;
-        }
       }
     }
 
-    console.log(`✅ Sanitized ${activeTab} item ${index} - Price: ${sanitized.price}, Date: ${sanitized.submittedDate}`);
     return sanitized;
   };
 
@@ -184,8 +124,6 @@ const OffersList = ({ onViewDetails }) => {
       const now = new Date();
       const diffInDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
       
-      console.log(`📅 Date calculation for ${activeTab}: ${dateString} -> ${diffInDays} jours`);
-      
       if (diffInDays === 0) return "Aujourd'hui";
       if (diffInDays === 1) return "Hier";
       if (diffInDays < 7) return `Il y a ${diffInDays} jours`;
@@ -206,13 +144,14 @@ const OffersList = ({ onViewDetails }) => {
   };
 
   // Nettoyage et validation des données
-  const rawData = activeTab === 'applications' ? (appliedJobs || []) : (offers || []);
+  // ✅ LES DEUX ONGLETS UTILISENT MAINTENANT LES MÊMES DONNÉES (offers)
+  const rawData = offers || []; // Toujours utiliser offers pour les deux onglets
   const cleanedData = rawData
     .map((item, index) => sanitizeItem(item, index))
     .filter(item => item !== null);
 
-  const isLoading = activeTab === 'applications' ? loading.appliedJobs : loading.offers;
-  const currentError = activeTab === 'applications' ? error.appliedJobs : error.offers;
+  const isLoading = loading.offers; // Toujours utiliser le loading des offers
+  const currentError = error.offers; // Toujours utiliser l'erreur des offers
   const isEmpty = cleanedData.length === 0;
 
   // Pagination
@@ -221,23 +160,13 @@ const OffersList = ({ onViewDetails }) => {
   const endIndex = startIndex + itemsPerPage;
   const paginatedData = cleanedData.slice(startIndex, endIndex);
 
-  console.log('📊 OffersList Render:', {
-    activeTab,
-    rawDataLength: rawData.length,
-    cleanedDataLength: cleanedData.length,
-    paginatedDataLength: paginatedData.length,
-    isLoading,
-    currentError,
-    initialFetchDone: initialFetchDone.current
-  });
-
   if (isLoading) {
     return (
       <div className="p-6">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
           <p className="mt-4 text-gray-600">
-            Chargement des {activeTab === 'applications' ? 'candidatures' : 'offres'}...
+            Chargement des offres...
           </p>
         </div>
       </div>
@@ -284,29 +213,29 @@ const OffersList = ({ onViewDetails }) => {
         <div className="flex space-x-1">
           <button
             onClick={() => {
-              setActiveTab('applications');
+              setActiveTab('candidatures');
               setCurrentPage(1);
             }}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              activeTab === 'applications'
+              activeTab === 'candidatures'
+                ? 'bg-[#518394] text-white'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            Mes Candidatures ({offers?.length || 0})
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('offres');
+              setCurrentPage(1);
+            }}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              activeTab === 'offres'
                 ? 'bg-[#518394] text-white'
                 : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
             }`}
           >
             Offres Reçues ({offers?.length || 0})
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab('offers');
-              setCurrentPage(1);
-            }}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              activeTab === 'offers'
-                ? 'bg-[#518394] text-white'
-                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            Mes Candidatures ({appliedJobs?.length || 0})
           </button>
         </div>
         
@@ -320,34 +249,29 @@ const OffersList = ({ onViewDetails }) => {
         </button>
       </div>
 
-      {/* ✅ DEBUG BOX UNIQUEMENT POUR LES CANDIDATURES */}
-      {activeTab === 'applications' && (
-        <DebugApplications appliedJobs={appliedJobs} />
-      )}
-
       {/* Contenu */}
       {isEmpty ? (
         <div className="text-center p-8 bg-white rounded-lg shadow border border-[#4242425a]">
           <div className="mb-4">
-            {activeTab === 'applications' ? (
+            {activeTab === 'candidatures' ? (
               <>
                 <h3 className="text-lg font-semibold text-gray-600 mb-2">Aucune candidature</h3>
                 <p className="text-gray-500">
-                  Vous n'avez pas encore postulé à des missions. 
+                  Vous n'avez pas encore de candidatures à afficher. 
                   <br />
-                  Explorez les missions disponibles et postulez !
+                  Les données de candidatures sont basées sur vos offres reçues.
                 </p>
               </>
             ) : (
               <>
                 <h3 className="text-lg font-semibold text-gray-600 mb-2">Aucune offre reçue</h3>
                 <p className="text-gray-500">
-                  Vous n'avez pas encore reçu d'offres directes de clients.
+                  Vous n'avez pas encore reçu d'offres de clients.
                 </p>
               </>
             )}
           </div>
-          {activeTab === 'applications' && (
+          {activeTab === 'candidatures' && (
             <button 
               onClick={() => window.location.href = '/freelancer/home'}
               className="px-4 py-2 bg-[#518394] text-white rounded hover:bg-[#406c7a]"
@@ -363,14 +287,19 @@ const OffersList = ({ onViewDetails }) => {
               
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
-                  <h2 className="text-xl font-semibold mb-2">
-                    {displayItem.missionTitle}
-                  </h2>
+                  <div className="flex items-center mb-2">
+                    <h2 className="text-xl font-semibold">
+                      {displayItem.missionTitle}
+                    </h2>
+                    
+                    
+                  </div>
                   <p className="text-sm text-gray-600 mb-2">
                     Client: {displayItem.clientName}
                   </p>
                   {displayItem.description && (
                     <p className="text-sm text-gray-600">
+                      {activeTab === 'candidatures' ? 'Ma proposition: ' : 'Description de l\'offre: '}
                       {displayItem.description.substring(0, 150)}
                       {displayItem.description.length > 150 ? '...' : ''}
                     </p>
@@ -398,7 +327,7 @@ const OffersList = ({ onViewDetails }) => {
                   <DollarSign size={16} className="text-gray-400" />
                   <div>
                     <p className="text-sm text-gray-500">
-                      {displayItem.isApplication ? 'Prix proposé' : 'Prix offert'}
+                      {activeTab === 'candidatures' ? 'Prix proposé' : 'Prix offert'}
                     </p>
                     <p className="font-medium">{displayItem.price} {displayItem.currency}</p>
                   </div>
@@ -413,7 +342,9 @@ const OffersList = ({ onViewDetails }) => {
                 <div className="flex items-center gap-2">
                   <Calendar size={16} className="text-gray-400" />
                   <div>
-                    <p className="text-sm text-gray-500">Date de candidature</p>
+                    <p className="text-sm text-gray-500">
+                      {activeTab === 'candidatures' ? 'Date de candidature' : 'Date de réception'}
+                    </p>
                     <p className="font-medium">
                       {getRelativeTime(displayItem.submittedDate)}
                     </p>

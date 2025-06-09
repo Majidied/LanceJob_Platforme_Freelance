@@ -406,7 +406,7 @@ exports.getOffers = async (freelancerId) => {
         description: app.coverLetter || app.description,
         clientName: app.clientName,
         status: app.status,
-        offerPrice: app.proposedPrice, // Mappage de proposedPrice vers offerPrice
+        offerPrice: app.proposedPrice, 
         currency: app.currency,
         timeline: app.deliveryTime
           ? `${app.deliveryTime} jours`
@@ -423,6 +423,7 @@ exports.getOffers = async (freelancerId) => {
     throw error;
   }
 };
+
 
 // Extrait de freelancer.service.js - Fonction saveJob améliorée
 

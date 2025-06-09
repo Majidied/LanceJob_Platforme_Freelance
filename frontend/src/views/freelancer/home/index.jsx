@@ -1,5 +1,5 @@
-//freelancer/home/index.jsx - Version avec debug
-import React, { useState, useEffect } from 'react';
+//freelancer/home/index.jsx - Version avec tri par date
+import React, { useState, useEffect, useMemo } from 'react';
 import { Heart } from 'lucide-react';
 import { Link } from "react-router-dom";
 import { useFreelancer } from '../../../context/FreelancerContext';
@@ -13,8 +13,36 @@ const Home = () => {
   
   const { jobs, loading, error, fetchJobs, toggleSaveJob } = useFreelancer();
   
+  // ✅ Mémoriser les jobs triés selon l'onglet actif
+  const sortedJobs = useMemo(() => {
+    if (!jobs || jobs.length === 0) return [];
+    
+    // Créer une copie pour éviter de muter l'état original
+    const jobsCopy = [...jobs];
+    
+    if (activeTab === 'mostRecent') {
+      // Trier par date de création (plus récent en premier)
+      return jobsCopy.sort((a, b) => {
+        const dateA = new Date(a.createdAt || a.updatedAt || 0);
+        const dateB = new Date(b.createdAt || b.updatedAt || 0);
+        return dateB - dateA; // Tri décroissant (plus récent en premier)
+      });
+    } else {
+      // Pour 'bestMatches', garder l'ordre original ou appliquer d'autres critères
+      // Ici vous pouvez ajouter votre propre logique de "best matches"
+      return jobsCopy.sort((a, b) => {
+        // Exemple: trier par budget (plus élevé en premier) pour "best matches"
+        const budgetA = parseFloat(a.budget || a.price || 0);
+        const budgetB = parseFloat(b.budget || b.price || 0);
+        return budgetB - budgetA;
+      });
+    }
+  }, [jobs, activeTab]);
+  
   // Fonction utilitaire pour calculer le temps relatif
   const getRelativeTime = (dateString) => {
+    if (!dateString) return 'Date inconnue';
+    
     const date = new Date(dateString);
     const now = new Date();
     const diffInSeconds = Math.floor((now - date) / 1000);
@@ -26,7 +54,6 @@ const Home = () => {
     return date.toLocaleDateString();
   };
 
-  
   // Gérer le toggle des favoris
   const handleToggleFavorite = async (jobId) => {
     try {
@@ -78,13 +105,13 @@ const Home = () => {
   return (
     <div className="flex flex-col h-full">
       
-      {/* Tabs */}
+      {/* Tabs avec indicateur de tri */}
       <div className="m-2">
         <div className="flex">
           {tabs.map(tab => (
             <button
               key={tab.id}
-              className={`py-3 px-16 w-1/2 text-center ${
+              className={`py-3 px-16 w-1/2 text-center relative ${
                 activeTab === tab.id 
                   ? 'text-[#518394] border-b-2 border-[#518394] font-medium' 
                   : 'text-gray-500 hover:text-gray-700'
@@ -92,23 +119,51 @@ const Home = () => {
               onClick={() => setActiveTab(tab.id)}
             >
               {tab.name}
+            
             </button>
           ))}
+        </div>
+        
+        {/* Indicateur du nombre de jobs et du tri actuel */}
+        <div className="flex justify-between items-center mt-2 px-4 text-sm text-gray-500">
+          <span>{sortedJobs.length} mission{sortedJobs.length > 1 ? 's' : ''} disponible{sortedJobs.length > 1 ? 's' : ''}</span>
+          <span>
+            {activeTab === 'mostRecent' 
+              ? 'Triées par date (plus récentes en premier)' 
+              : 'Triées par pertinence (budget élevé en premier)'
+            }
+          </span>
         </div>
       </div>
       
       {/* Job Listings */}
       <div className="flex-1 w-full max-w-screen-xl p-4 mx-auto">
         <div className="flex flex-col gap-4">
-          {jobs.map(job => (
+          {sortedJobs.map((job, index) => (
             <div key={job._id} className="p-6 bg-white rounded-lg shadow dark:!bg-navy-800 border border-[#4242425a]">
               <div className="flex justify-between">
                 <div className="flex-1">
                   {/* Job Header */}
                   <div className="flex justify-between mb-3">
-                    <h3 className="text-xl font-bold dark:text-white">
-                      {getSafeValue(job.title, 'Titre non disponible')}
-                    </h3>
+                    <div className="flex items-center">
+                      <h3 className="text-xl font-bold dark:text-white">
+                        {getSafeValue(job.title, 'Titre non disponible')}
+                      </h3>
+                      {/* Badge pour indiquer si c'est une mission récente (moins de 24h) */}
+                      {activeTab === 'mostRecent' && job.createdAt && (
+                        (() => {
+                          const hoursAgo = Math.floor((new Date() - new Date(job.createdAt)) / (1000 * 60 * 60));
+                          if (hoursAgo < 24) {
+                            return (
+                              <span className="ml-2 px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+                                🆕 {hoursAgo < 1 ? 'Nouvelle' : `${hoursAgo}h`}
+                              </span>
+                            );
+                          }
+                          return null;
+                        })()
+                      )}
+                    </div>
                     <div className="flex items-center">
                       <span className="mr-2 text-gray-500">
                         {job.createdAt ? getRelativeTime(job.createdAt) : 'Date inconnue'}
@@ -180,7 +235,12 @@ const Home = () => {
                     </div>
                   </div>
                   
-                  
+                  {/* Indicateur de position dans le tri (utile pour le debug) */}
+                  {activeTab === 'mostRecent' && (
+                    <div className="text-xs text-gray-400 mt-2">
+                      Position: #{index + 1} • Créée le: {job.createdAt ? new Date(job.createdAt).toLocaleDateString('fr-FR') : 'Date inconnue'}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
