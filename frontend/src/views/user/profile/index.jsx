@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import avatar from "../../../assets/img/profile/banner.png";
 import { Star } from 'lucide-react';
 import { getClient, updateClient } from '../../../api/client';
+import useUser from '../../../hooks/useUser';
 
 const Profile = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -21,6 +22,8 @@ const Profile = () => {
     description: false
   });
 
+  const { user } = useUser();
+
   // État temporaire pour stocker les modifications en cours
   const [tempData, setTempData] = useState({...profileData});
 
@@ -31,7 +34,7 @@ const Profile = () => {
         setIsLoading(true);
         
         // Récupérer l'ID du client depuis l'URL (si disponible)
-        let clientId='6845d22ffeb2f7765790613c';
+        let clientId= user?.id;
         
         const data = await getClient(clientId);
 

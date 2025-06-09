@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import OffersList from './OffersList';
 import OfferDetails from './OfferDetails';
-import { useFreelancer } from '../../../context/FreelancerContext';
+import { useFreelancer } from '../../../../context/FreelancerContext';
 
 const Offers = () => {
   const [selectedOffer, setSelectedOffer] = useState(null);

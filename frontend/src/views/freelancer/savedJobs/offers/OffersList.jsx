@@ -1,6 +1,6 @@
 // frontend/src/views/freelancer/offers/OffersList.jsx - VERSION SANS DEBUG
 import React, { useEffect, useState, useRef } from 'react';
-import { useFreelancer } from '../../../context/FreelancerContext';
+import { useFreelancer } from '../../../../context/FreelancerContext';
 import { Eye, MessageCircle, Calendar, DollarSign, Clock, RefreshCw } from 'lucide-react';
 
 const statusColors = {

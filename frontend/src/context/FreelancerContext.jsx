@@ -1,6 +1,8 @@
 // FreelancerContext.jsx - Version avec amélioration saved jobs
 import React, { createContext, useState, useEffect, useContext, useCallback, useRef } from 'react';
 import { freelancerAPI } from '../api/freelancer';
+import useUser from '../hooks/useUser';
+
 
 export const FreelancerContext = createContext();
 
@@ -22,10 +24,10 @@ export const FreelancerProvider = ({ children }) => {
     offers: null
   });
 
+  const { user } = useUser();
+
   // ✅ UTILISER L'ID DU FREELANCER DE VOTRE BASE DE DONNÉES
-  const [currentFreelancerId, setCurrentFreelancerId] = useState(
-    '6845c34efeb2f776579060ea'
-  );
+  const currentFreelancerId = user?.id;
 
   // ✅ Refs pour éviter les appels multiples
   const isFetchingApplications = useRef(false);
@@ -435,7 +437,6 @@ export const FreelancerProvider = ({ children }) => {
 
   const setFreelancerId = useCallback((id) => {
     console.log('🔄 Setting freelancer ID:', id);
-    setCurrentFreelancerId(id);
     if (id) {
       localStorage.setItem('freelancerId', id);
     } else {
