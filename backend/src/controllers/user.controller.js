@@ -10,11 +10,13 @@ exports.getAllUsers = async (req, res, next) => {
 };
 
 exports.getUserByToken = async (req, res, next) => {
+  console.log('getUserByToken called');
   try {
     const token = req.headers['authorization']?.split(' ')[1];
     if (!token) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
+    // Ensure the service function is awaited only once and returns the user object directly
     const user = await userService.getUserByToken(token);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -24,12 +26,14 @@ exports.getUserByToken = async (req, res, next) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      status: user.status,
     };
     res.status(200).json({ data: userData });
   } catch (error) {
+    console.error('Error in getUserByToken:', error);
     next(error);
   }
-}
+};
 
 exports.getUserById = async (req, res, next) => {
   try {

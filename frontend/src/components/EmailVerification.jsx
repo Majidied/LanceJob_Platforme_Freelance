@@ -1,34 +1,38 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import useUser from '../hooks/useUser';
 
 const EmailVerification = ({ email = "examp****le@gmail.com", onVerify = () => {} }) => {
   const [verificationCode, setVerificationCode] = useState(['', '', '', '', '', '']);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendError, setResendError] = useState('');
   const inputRefs = useRef([]);
+  const { 
+    verifyEmailWithCode, 
+    isVerifyEmailWithCodePending, 
+    isVerifyEmailWithCodeError, 
+    verifyEmailWithCodeError,
+    resendVerificationEmail,
+    refetchVerification
+  } = useUser();
 
   useEffect(() => {
-    // Autofocus sur le premier input au chargement
     if (inputRefs.current[0]) {
       inputRefs.current[0].focus();
     }
   }, []);
 
   const handleCodeChange = (index, value) => {
-    // N'accepter que les chiffres
     if (value && !/^\d*$/.test(value)) return;
-
     const newCode = [...verificationCode];
     newCode[index] = value;
     setVerificationCode(newCode);
-
-    // Passer automatiquement à l'input suivant
     if (value && index < 5) {
       inputRefs.current[index + 1].focus();
     }
   };
 
   const handleKeyDown = (index, e) => {
-    // Retourner à l'input précédent sur Backspace
     if (e.key === 'Backspace' && !verificationCode[index] && index > 0) {
       inputRefs.current[index - 1].focus();
     }
@@ -37,54 +41,47 @@ const EmailVerification = ({ email = "examp****le@gmail.com", onVerify = () => {
   const handlePaste = (e) => {
     e.preventDefault();
     const pastedData = e.clipboardData.getData('text').trim();
-    
-    // Vérifier si c'est un code à 6 chiffres
     if (/^\d{6}$/.test(pastedData)) {
       const newCode = pastedData.split('');
       setVerificationCode(newCode);
-      
-      // Focus sur le dernier champ
       inputRefs.current[5].focus();
     }
   };
 
   const handleSubmit = async () => {
     const code = verificationCode.join('');
-    
     if (code.length !== 6) {
       setError('Veuillez entrer le code complet à 6 chiffres');
       return;
     }
-
-    setIsSubmitting(true);
     setError('');
-
     try {
-      // Simulation d'un appel API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Appeler la fonction de callback avec le code
+      await verifyEmailWithCode({ verificationCode: code }).then(() => {
+        refetchVerification();
+      });
       onVerify(code);
-      
-      console.log('Code vérifié:', code);
-    } catch (error) {
-      setError('Erreur de vérification. Veuillez réessayer.');
-      console.error('Erreur de vérification:', error);
-    } finally {
-      setIsSubmitting(false);
+    } catch (err) {
+      setError(
+        err?.message ||
+        verifyEmailWithCodeError?.message ||
+        'Erreur de vérification. Veuillez réessayer.'
+      );
     }
   };
 
-  const handleResendCode = async () => {
+  // FIX: Wrap resend handler and manage its own loading/error state
+  const handleResendCode = useCallback(async () => {
+    setResendLoading(true);
+    setResendError('');
     try {
-      // Simulation d'un appel API pour renvoyer le code
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log('Code renvoyé à:', email);
-      alert(`Un nouveau code a été envoyé à ${email}`);
-    } catch (error) {
-      console.error('Erreur lors du renvoi du code:', error);
+      await resendVerificationEmail();
+      // Optionally show a success message
+    } catch (err) {
+      setResendError(err?.message || "Erreur lors de l'envoi du code.");
+    } finally {
+      setResendLoading(false);
     }
-  };
+  }, [resendVerificationEmail]);
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-white">
@@ -122,19 +119,29 @@ const EmailVerification = ({ email = "examp****le@gmail.com", onVerify = () => {
             ))}
           </div>
           
-          {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+          {(error || isVerifyEmailWithCodeError) && (
+            <p className="text-red-500 text-center mb-4">
+              {error || verifyEmailWithCodeError?.message}
+            </p>
+          )}
+
+          {resendError && (
+            <p className="text-red-500 text-center mb-4">
+              {resendError}
+            </p>
+          )}
           
           <div className="flex justify-center mb-6">
             <button
               onClick={handleSubmit}
-              disabled={isSubmitting}
+              disabled={isVerifyEmailWithCodePending}
               className="w-40 font-medium py-3 px-4 rounded-full transition duration-200"
               style={{ 
-                backgroundColor: isSubmitting ? '#95B2C1' : '#33647E', 
+                backgroundColor: isVerifyEmailWithCodePending ? '#95B2C1' : '#33647E', 
                 color: 'white' 
               }}
             >
-              {isSubmitting ? 'Verifying...' : 'Verify email'}
+              {isVerifyEmailWithCodePending ? 'Verifying...' : 'Verify email'}
             </button>
           </div>
           
@@ -143,10 +150,11 @@ const EmailVerification = ({ email = "examp****le@gmail.com", onVerify = () => {
               Didn't receive the code?{' '}
               <button 
                 onClick={handleResendCode}
+                disabled={resendLoading}
                 className="font-medium"
                 style={{ color: '#33647E' }}
               >
-                Resend Code
+                {resendLoading ? "Resending..." : "Resend Code"}
               </button>
             </p>
           </div>

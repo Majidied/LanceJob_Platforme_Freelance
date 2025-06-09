@@ -2,7 +2,7 @@
 import React from "react";
 import Home from "../../../views/freelancer/home";
 import SavedJobs from "../../../views/freelancer/savedJobs";
-import Offers from "../../../views/freelancer/offers";
+import Offers from "../../../views/freelancer/savedJobs/offers";
 import Messages from "../../../views/freelancer/messages";
 import ProposePage from "../../../views/freelancer/propose";
 // Icon Imports

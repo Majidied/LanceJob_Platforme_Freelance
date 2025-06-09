@@ -41,7 +41,7 @@ const verifyToken = async (token) => {
  */
 const getUserIdByToken = async (token) => {
     try {
-        jwt.verify(token, config.jwtSecret);
+        await jwt.verify(token, config.jwtSecret);
         const userId = await redisClient.get(token);
         return userId || null;
     } catch (error) {
@@ -64,6 +64,8 @@ const generateVerificationCode = (userID) => {
  */
 const verifyVerificationCode = async (userID, verificationCode) => {
     const storedCode = await redisClient.get(userID);
+    console.log('Stored code:', storedCode);
+    console.log('Provided code:', verificationCode);
     if (storedCode === verificationCode) {
         await redisClient.del(userID); // Delete the code after successful verification
         return true;

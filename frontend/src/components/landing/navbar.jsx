@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import logo from "../../assets/LanceLogo.png";
+import { Link } from 'react-router-dom';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -42,10 +43,14 @@ const Navbar = () => {
           {/* Desktop Buttons - Hidden on mobile */}
           <div className="hidden mr-8 md:flex space-x-4">
             <button className="border border-[#5A8C8E] text-[#5A8C8E] px-4 py-1 rounded-lg font-semibold hover:bg-[#5A8C8E] hover:text-white transition-colors">
-              Login
+              <Link to="/login">
+                Login
+              </Link>
             </button>
             <button className="bg-[#5A8C8E] text-white px-4 py-1 rounded-lg font-semibold hover:bg-[#4a7476] transition-colors">
-              Sign up
+              <Link to="/register">
+                Sign up
+              </Link>
             </button>
           </div>
 
