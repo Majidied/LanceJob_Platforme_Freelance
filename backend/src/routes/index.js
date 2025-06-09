@@ -4,6 +4,7 @@ const missionRoutes = require('./mission.routes');
 const authRoutes = require('./auth.routes'); // Uncomment if you have auth routes
 const freelancerRoutes = require('./freelancer.routes');
 const clientRoutes = require('./client.routes');
+const recommendationRoutes = require('./recommendation.routes');
 const { authenticateJWT, verificationUser} = require('../middleware/auth.middleware');
 
 
@@ -14,6 +15,7 @@ router.use('/auth', authRoutes);
 router.use('/mission', authenticateJWT, verificationUser, missionRoutes);
 router.use('/freelancer', authenticateJWT, verificationUser, freelancerRoutes);
 router.use('/client', authenticateJWT, verificationUser, clientRoutes);
+router.use('/recommendations', authenticateJWT, verificationUser, recommendationRoutes);
 // Health check endpoint
 router.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });

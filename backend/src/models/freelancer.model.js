@@ -44,6 +44,10 @@ const freelancerSchema = new mongoose.Schema({
       enum: ['pending', 'accepted', 'rejected'],
       default: 'pending'
     }
+  }],
+  savedMissions: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Mission'
   }]
 });
 
