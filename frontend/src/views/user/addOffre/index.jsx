@@ -23,7 +23,7 @@ const AddOffre = () => {
     budget: '',
     deadline: '',
     experience: 'intermediaire',
-    client: '663c0a5b5f1c2f7b2d765456',
+    client: '6845d22ffeb2f7765790613c',
     status: 'published',
     // Step 3: Job Requirements
     //additionalRequirements: '',

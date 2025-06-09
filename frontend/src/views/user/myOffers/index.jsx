@@ -1,13 +1,14 @@
 import React, { useState,useEffect } from 'react';
 import { Clock, MapPin, Briefcase, DollarSign, Users, ChevronLeft, Star, Calendar, MessageCircle, User, FilePlus, Check, X ,Plus} from 'lucide-react';
 import { Link } from "react-router-dom";
-import { fetchMissions } from '../../../api/mission';
+import { fetchMissions, updateMission ,updateApplicationStatus} from '../../../api/mission';
 import { getFreelancer } from '../../../api/freelancer';
 
 const MyOffers = () => {
   const [selectedOffer, setSelectedOffer] = useState(null);
   const [offers, setOffers] = useState([]);
   const [freelancers, setFreelancers] = useState({});
+  const [loading, setLoading] = useState(false);
   const loadOffers = async () => {
   try {
     const response = await fetchMissions();
@@ -15,8 +16,11 @@ const MyOffers = () => {
     const missionsArray = Array.isArray(response) 
       ? response 
       : (response?.data || response?.missions || Object.values(response || {}));
-      
-    setOffers(missionsArray.map(mission => ({
+    const filteredMissions = missionsArray.filter(
+      mission => mission.client === "6845d22ffeb2f7765790613c"
+    );
+    
+    setOffers(filteredMissions.map(mission => ({
       ...mission,
       applications: mission.applications || []
     })));
@@ -57,6 +61,49 @@ const fetchFreelancers = async () => {
   const handleBackClick = () => {
     setSelectedOffer(null);
   };
+  // Fonction complètement nouvelle pour embaucher un freelancer
+const handleHireFreelancer = async (freelancerId, applicantId, currentApplicationId) => {
+  try {
+    setLoading(true);
+
+    // 1. Mise à jour de la mission
+    const updatedMissionData = {
+      assignedTo: freelancerId,
+      status: 'assigned',
+    };
+    await updateMission(selectedOffer._id, updatedMissionData);
+
+    // 2. Mise à jour du statut de l'application
+    await updateApplicationStatus(selectedOffer._id, applicantId, 'accepted',currentApplicationId);
+
+    // 3. Mise à jour de l’état local
+    const updatedOffer = {
+      ...selectedOffer,
+      assignedTo: freelancerId,
+      status: 'assigned',
+      applications: selectedOffer.applications.map(app =>
+        app._id === applicantId
+          ? { ...app, status: 'accepted' }
+          : app
+      ),
+    };
+
+    setSelectedOffer(updatedOffer);
+    setOffers(prevOffers =>
+      prevOffers.map(offer =>
+        offer._id === selectedOffer._id ? updatedOffer : offer
+      )
+    );
+
+    alert('Freelancer embauché avec succès!');
+  } catch (error) {
+    console.error("Erreur lors de l'embauche du freelancer:", error);
+    alert("Erreur lors de l'embauche du freelancer");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // If an offer is selected, show applicants
   if (selectedOffer) {
@@ -74,7 +121,14 @@ const fetchFreelancers = async () => {
         
         <div className="px-6 pb-6">
           <div className="p-5 mb-6 bg-white shadow-sm rounded-xl">
+            <div className="flex items-center">
             <h1 className="text-2xl font-bold text-slate-800">{selectedOffer.title}</h1>
+            {selectedOffer.assignedTo && (
+              <span className="px-3 py-1 ml-2 text-sm font-semibold text-green-700 bg-green-100 rounded-md">
+                Assigné
+              </span>
+            )}
+            </div>
             <p className="mt-3 text-slate-600">{selectedOffer.description}</p>
             
             <div className="flex flex-wrap gap-2 mt-4">
@@ -101,7 +155,9 @@ const fetchFreelancers = async () => {
                 </div>
                 <div className="ml-3">
                   <p className="text-xs font-medium text-slate-500">Duration</p>
-                  <p className="font-semibold text-slate-800">{selectedOffer.deadline}</p>
+                  <p className="font-semibold text-slate-800">
+                    {new Date(selectedOffer.deadline).toISOString().slice(0, 10)}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center">
@@ -140,6 +196,10 @@ const fetchFreelancers = async () => {
             {selectedOffer.applications.map(applicant => {
               const freelancer = freelancers[applicant.freelancer] || {};
               const freelancerData = freelancer.data || {};
+              const isAssigned = selectedOffer.assignedTo === applicant.freelancer;
+              const currentApplicationId = freelancerData.appliedMissions?.find(
+                mission => mission.mission === selectedOffer._id
+              )?._id;
               return (
               <div key={applicant.freelancer} className="overflow-hidden bg-white shadow-sm rounded-xl">
                 <div className="p-5">
@@ -151,10 +211,23 @@ const fetchFreelancers = async () => {
                           alt={freelancerData.name} 
                           className="w-12 h-12 border-2 border-indigo-100 rounded-full"
                         />
-                        <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
+                        <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full">
+                          {isAssigned && (
+                            <div className="absolute flex items-center justify-center w-6 h-6 bg-green-500 border-2 border-white rounded-full -top-1 -right-1">
+                              <Check size={12} className="text-white" />
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <div className="ml-3">
-                        <h3 className="text-lg font-semibold text-slate-800">{freelancerData.name}</h3>
+                        <div className="flex items-center">
+                            <h3 className="text-lg font-semibold text-slate-800">{freelancerData.name}</h3>
+                            {isAssigned && (
+                              <span className="px-2 py-1 ml-2 text-xs font-semibold text-green-700 bg-green-100 rounded-md">
+                                Embauché
+                              </span>
+                            )}
+                          </div>
                         <div className="flex items-center mt-1">
                           <div className="flex items-center px-2 py-1 rounded-md bg-yellow-50">
                             <Star size={14} className="text-yellow-500" />
@@ -169,9 +242,23 @@ const fetchFreelancers = async () => {
                       <button className="flex items-center justify-center w-10 h-10 rounded-full text-slate-500 bg-slate-100 hover:bg-slate-200">
                         <MessageCircle size={18} />
                       </button>
-                      <button className="px-4 py-2 text-sm font-medium text-white transition-colors bg-[#86C1A3] rounded-md hover:bg-[#5f9478]">
-                        Hire Now
-                      </button>
+                     {!selectedOffer.assignedTo ? (
+                          <button 
+                            onClick={() => handleHireFreelancer(applicant.freelancer, applicant._id,currentApplicationId)}
+                            disabled={loading}
+                            className="px-4 py-2 text-sm font-medium text-white transition-colors bg-[#86C1A3] rounded-md hover:bg-[#5f9478] disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {loading ? 'Loading...' : 'Hire Now'}
+                          </button>
+                        ) : isAssigned ? (
+                          <span className="px-4 py-2 text-sm font-medium text-green-700 bg-green-100 rounded-md">
+                            Embauché
+                          </span>
+                        ) : (
+                          <span className="px-4 py-2 text-sm font-medium text-gray-500 bg-gray-100 rounded-md">
+                            Non sélectionné
+                          </span>
+                        )}
                     </div>
                   </div>
                   
@@ -184,7 +271,7 @@ const fetchFreelancers = async () => {
                     </div>
                     <div className="flex items-center px-3 py-2 mr-4 rounded-lg bg-slate-50">
                       <Calendar size={16} className="text-slate-600" />
-                      <span className="ml-2 text-sm font-semibold text-slate-800">{applicant.proposedDuration}</span>
+                      <span className="ml-2 text-sm font-semibold text-slate-800">{new Date(applicant.proposedDuration).toISOString().slice(0, 10)}</span>
                     </div>
                   </div>
                 </div>
@@ -228,8 +315,12 @@ const fetchFreelancers = async () => {
           >
             <div className="p-5">
               <div className="flex items-center mb-3">
-                <span className="px-2 py-1 text-xs font-semibold text-green-700 bg-green-100 rounded-md">
-                  Active
+                <span className={`px-2 py-1 text-xs font-semibold rounded-md ${
+                  offer.assignedTo 
+                    ? 'text-blue-700 bg-blue-100' 
+                    : 'text-green-700 bg-green-100'
+                }`}>
+                  {offer.assignedTo ? 'Assigné' : 'Active'}
                 </span>
                 <span className="ml-auto text-sm text-slate-500">{offer.timestamps}</span>
               </div>
@@ -256,7 +347,12 @@ const fetchFreelancers = async () => {
                 </div>
                 <div className="flex flex-col">
                   <span className="text-xs font-medium text-slate-500">Duration</span>
-                  <span className="text-sm font-semibold text-slate-800">{offer.deadline}</span>
+                  <span className="text-sm font-semibold text-slate-800">  {offer.deadline && !isNaN(new Date(offer.deadline)) ? (
+                  new Date(offer.deadline).toISOString().split('T')[0]
+                ) : (
+                  'Date invalide'
+                )}
+                </span>
                 </div>
                 <div className="flex flex-col">
                   <span className="text-xs font-medium text-slate-500">Experience</span>
