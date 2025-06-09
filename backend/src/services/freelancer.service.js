@@ -24,12 +24,20 @@ exports.deleteFreelancer = async (id) => {
   return await Freelancer.findByIdAndDelete(id);
 };
 
-// ✅ CORRECTION de la fonction applyForMission dans freelancer.service.js
+// ✅ CORRECTION COMPLÈTE de la fonction applyForMission
 exports.applyForMission = async (freelancerId, missionId, proposalData) => {
   console.log('🔍 Service - Vérification de la mission:', missionId);
   console.log('📝 Service - Proposal data received:', proposalData);
   
-  // Check if mission exists
+  // ✅ 1. Vérifier que le freelancer existe AVANT tout
+  const freelancerExists = await Freelancer.findById(freelancerId);
+  if (!freelancerExists) {
+    console.error(`❌ Freelancer non trouvé avec l'ID: ${freelancerId}`);
+    throw new Error(`Freelancer not found with ID: ${freelancerId}`);
+  }
+  console.log('✅ Freelancer trouvé:', freelancerExists._id);
+  
+  // ✅ 2. Check if mission exists
   const mission = await Mission.findById(missionId);
   console.log('📋 Mission trouvée:', mission ? {
     _id: mission._id,
@@ -51,69 +59,242 @@ exports.applyForMission = async (freelancerId, missionId, proposalData) => {
   
   console.log('🔍 Vérification si déjà postulé pour freelancer:', freelancerId);
   
-  // Check if already applied
-  const alreadyApplied = await Freelancer.findOne({
+  // ✅ 3. Check if already applied - AMÉLIORATION avec vérification plus robuste
+  const alreadyAppliedFreelancer = await Freelancer.findOne({
     _id: freelancerId,
     'appliedMissions.mission': missionId
   });
-  
-  if (alreadyApplied) {
+
+  const alreadyAppliedMission = await Mission.findOne({
+    _id: missionId,
+    'applications.freelancer': freelancerId
+  });
+
+  if (alreadyAppliedFreelancer || alreadyAppliedMission) {
     console.log('❌ Déjà postulé');
     throw new Error('You have already applied for this mission');
   }
   
   console.log('✅ Pas encore postulé, création de la candidature...');
   
-  // ✅ CORRECTION: Assurer que proposalData est un objet, puis stringify UNE SEULE FOIS
+  // ✅ 4. CORRECTION: Assurer que proposalData est un objet, puis stringify UNE SEULE FOIS
   let formattedProposal;
+  let parsedProposalData = {};
+
   if (typeof proposalData === 'object' && proposalData !== null) {
     // Valider les données importantes
     const validatedData = {
       coverLetter: proposalData.coverLetter || '',
       proposedPrice: Number(proposalData.proposedPrice) || 0,
       currency: proposalData.currency || 'MAD',
-      deliveryTime: Number(proposalData.deliveryTime) || 0,
+      deliveryTime: proposalData.deliveryTime || 0,
       attachments: proposalData.attachments || []
     };
+    
+    parsedProposalData = validatedData;
     
     console.log('🔧 Service - Validated proposal data:', validatedData);
     formattedProposal = JSON.stringify(validatedData);
   } else if (typeof proposalData === 'string') {
     // Si déjà une string, l'utiliser directement
     formattedProposal = proposalData;
+    try {
+      parsedProposalData = JSON.parse(proposalData);
+    } catch (e) {
+      console.warn('Could not parse existing proposal string');
+    }
   } else {
     throw new Error('Invalid proposal data format');
   }
   
   console.log('💾 Service - Final formatted proposal:', formattedProposal);
   
-  // Add to applied missions
-  const result = await Freelancer.findByIdAndUpdate(
-    freelancerId,
-    {
-      $push: {
-        appliedMissions: {
-          mission: missionId,
-          applicationDate: new Date(),
-          status: 'pending',
-          proposal: formattedProposal
+  // ✅ 5. VERSION SANS TRANSACTION (pour MongoDB standalone)
+  let updatedFreelancer;
+  let updatedMission;
+
+  try {
+    // ✅ 5a. Mettre à jour le freelancer d'abord
+    updatedFreelancer = await Freelancer.findByIdAndUpdate(
+      freelancerId,
+      {
+        $push: {
+          appliedMissions: {
+            mission: missionId,
+            applicationDate: new Date(),
+            status: 'pending',
+            proposal: formattedProposal
+          }
         }
+      },
+      { new: true }
+    );
+    
+    if (!updatedFreelancer) {
+      throw new Error(`Failed to update freelancer with ID: ${freelancerId}`);
+    }
+    
+    console.log('✅ Freelancer mis à jour avec succès');
+    
+    // ✅ 5b. Mettre à jour la mission
+    updatedMission = await Mission.findByIdAndUpdate(
+      missionId,
+      {
+        $push: {
+          applications: {
+            freelancer: freelancerId,
+            applicationDate: new Date(),
+            message: parsedProposalData.coverLetter || '',
+            proposedPrice: parsedProposalData.proposedPrice || 0,
+            proposedDuration:parsedProposalData.deliveryTime|| 0,
+            status: 'pending'
+          }
+        }
+      },
+      { new: true }
+    );
+    
+    if (!updatedMission) {
+      // ❌ Si la mission échoue, annuler la mise à jour du freelancer
+      console.error('❌ Échec de la mise à jour de la mission, annulation...');
+      
+      await Freelancer.findByIdAndUpdate(
+        freelancerId,
+        {
+          $pull: {
+            appliedMissions: { mission: missionId }
+          }
+        }
+      );
+      
+      throw new Error(`Failed to update mission with ID: ${missionId}`);
+    }
+    
+    console.log('✅ Mission mise à jour avec succès');
+    console.log('✅ Candidature ajoutée dans les deux modèles');
+    
+  } catch (error) {
+    console.error('❌ Erreur lors de la mise à jour:', error);
+    
+    // Si on a réussi à mettre à jour le freelancer mais pas la mission, annuler
+    if (updatedFreelancer && !updatedMission) {
+      console.log('🔄 Annulation de la mise à jour du freelancer...');
+      try {
+        await Freelancer.findByIdAndUpdate(
+          freelancerId,
+          {
+            $pull: {
+              appliedMissions: { mission: missionId }
+            }
+          }
+        );
+        console.log('✅ Mise à jour du freelancer annulée');
+      } catch (rollbackError) {
+        console.error('❌ Erreur lors de l\'annulation:', rollbackError);
       }
-    },
-    { new: true }
-  ).populate('appliedMissions.mission');
+    }
+    
+    throw error;
+  }
+
+  // ✅ 6. Récupérer le freelancer mis à jour avec les données populées
+  const result = await Freelancer.findById(freelancerId)
+    .populate('appliedMissions.mission');
+    
+  // ✅ CORRECTION CRITIQUE: Vérifier si result est null
+  if (!result) {
+    console.error(`❌ Échec de la mise à jour du freelancer avec l'ID: ${freelancerId}`);
+    throw new Error(`Failed to update freelancer with ID: ${freelancerId}`);
+  }
   
   console.log('✅ Candidature créée avec succès');
+  
+  // ✅ 7. Vérification supplémentaire avant d'accéder aux appliedMissions
+  if (!result.appliedMissions || result.appliedMissions.length === 0) {
+    console.error('❌ Aucune candidature trouvée après la mise à jour');
+    throw new Error('No applied missions found after update');
+  }
   
   // Retourner la dernière candidature ajoutée pour vérification
   const lastApplication = result.appliedMissions[result.appliedMissions.length - 1];
   console.log('🔍 Service - Last application created:', {
     _id: lastApplication._id,
-    proposal: lastApplication.proposal,
-    parsedProposal: JSON.parse(lastApplication.proposal)
+    proposal: lastApplication.proposal
   });
   
+  // ✅ 8. Sécuriser le parsing pour les logs
+  try {
+    const parsedProposal = JSON.parse(lastApplication.proposal);
+    console.log('📋 Parsed proposal:', parsedProposal);
+  } catch (parseError) {
+    console.warn('⚠️ Could not parse proposal for logging:', parseError.message);
+  }
+  
   return result;
+};
+
+// ✅ FONCTION UTILITAIRE: Pour débugger un freelancer spécifique
+exports.debugFreelancer = async (freelancerId) => {
+  try {
+    console.log(`🔍 Debugging freelancer: ${freelancerId}`);
+    
+    // Vérifier si l'ID est valide
+    if (!mongoose.Types.ObjectId.isValid(freelancerId)) {
+      console.log('❌ ID freelancer invalide');
+      return { error: 'Invalid freelancer ID format' };
+    }
+    
+    const freelancer = await Freelancer.findById(freelancerId);
+    
+    if (!freelancer) {
+      console.log('❌ Freelancer non trouvé');
+      return { error: 'Freelancer not found' };
+    }
+
+    console.log('📋 Freelancer data:');
+    console.log('- ID:', freelancer._id);
+    console.log('- Name:', freelancer.name || freelancer.firstName + ' ' + freelancer.lastName);
+    console.log('- Email:', freelancer.email);
+    console.log('- appliedMissions exists:', freelancer.appliedMissions !== undefined);
+    console.log('- appliedMissions type:', typeof freelancer.appliedMissions);
+    console.log('- appliedMissions length:', freelancer.appliedMissions?.length || 'N/A');
+
+    return {
+      success: true,
+      freelancer: {
+        id: freelancer._id,
+        name: freelancer.name || `${freelancer.firstName} ${freelancer.lastName}`,
+        email: freelancer.email,
+        appliedMissionsCount: freelancer.appliedMissions?.length || 0
+      }
+    };
+  } catch (error) {
+    console.error('❌ Error debugging freelancer:', error);
+    return { error: error.message };
+  }
+};
+
+// ✅ MIGRATION: Pour corriger les freelancers existants sans appliedMissions
+exports.fixFreelancersWithoutAppliedMissions = async () => {
+  try {
+    console.log('🔧 Fixing freelancers without appliedMissions...');
+    
+    const result = await Freelancer.updateMany(
+      { 
+        $or: [
+          { appliedMissions: { $exists: false } },
+          { appliedMissions: null }
+        ]
+      },
+      { $set: { appliedMissions: [] } }
+    );
+
+    console.log(`✅ Fixed ${result.modifiedCount} freelancers`);
+    return result;
+  } catch (error) {
+    console.error('❌ Error fixing freelancers:', error);
+    throw error;
+  }
 };
 exports.getAppliedMissions = async (freelancerId) => {
   try {

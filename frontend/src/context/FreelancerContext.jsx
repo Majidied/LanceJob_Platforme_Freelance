@@ -24,7 +24,7 @@ export const FreelancerProvider = ({ children }) => {
 
   // ✅ UTILISER L'ID DU FREELANCER DE VOTRE BASE DE DONNÉES
   const [currentFreelancerId, setCurrentFreelancerId] = useState(
-    localStorage.getItem('freelancerId') || '6830ee0e4fc7edee46cf57ea'
+    '6827bfa3d446471922fc632b'
   );
 
   // ✅ Refs pour éviter les appels multiples
