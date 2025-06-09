@@ -424,16 +424,86 @@ exports.getOffers = async (freelancerId) => {
   }
 };
 
-exports.saveJob = async (freelancerId, missionId) => {
-  // ... existing code for saveJob ...
-  const freelancer = await Freelancer.findById(freelancerId);
-  if (!freelancer) throw new Error('Freelancer not found');
+// Extrait de freelancer.service.js - Fonction saveJob améliorée
 
-  return await Freelancer.findByIdAndUpdate(
-    freelancerId,
-    { $addToSet: { savedJobs: missionId } }, // $addToSet pour éviter les doublons
-    { new: true }
-  ).populate('savedJobs');
+exports.saveJob = async (freelancerId, missionId) => {
+  try {
+    console.log('🔄 Service: Toggle saved job for freelancer:', freelancerId, 'mission:', missionId);
+    
+    const freelancer = await Freelancer.findById(freelancerId);
+    if (!freelancer) {
+      throw new Error('Freelancer not found');
+    }
+
+    // Vérifier si la mission existe
+    const mission = await Mission.findById(missionId);
+    if (!mission) {
+      throw new Error('Mission not found');
+    }
+
+    // Vérifier si le job est déjà sauvegardé
+    const isAlreadySaved = freelancer.savedJobs.some(
+      savedJobId => savedJobId.toString() === missionId.toString()
+    );
+
+    let updatedFreelancer;
+    
+    if (isAlreadySaved) {
+      // Supprimer le job des favoris
+      console.log('📤 Removing job from saved jobs');
+      updatedFreelancer = await Freelancer.findByIdAndUpdate(
+        freelancerId,
+        { $pull: { savedJobs: missionId } },
+        { new: true }
+      ).populate('savedJobs');
+    } else {
+      // Ajouter le job aux favoris
+      console.log('📥 Adding job to saved jobs');
+      updatedFreelancer = await Freelancer.findByIdAndUpdate(
+        freelancerId,
+        { $addToSet: { savedJobs: missionId } },
+        { new: true }
+      ).populate('savedJobs');
+    }
+
+    if (!updatedFreelancer) {
+      throw new Error('Failed to update freelancer saved jobs');
+    }
+
+    console.log('✅ Saved jobs updated successfully. Total saved jobs:', updatedFreelancer.savedJobs.length);
+    
+    return updatedFreelancer;
+  } catch (error) {
+    console.error('❌ Error in saveJob service:', error);
+    throw error;
+  }
+};
+
+exports.getSavedJobs = async (freelancerId) => {
+  try {
+    console.log('🔄 Service: Getting saved jobs for freelancer:', freelancerId);
+    
+    const freelancer = await Freelancer.findById(freelancerId)
+      .populate({
+        path: 'savedJobs',
+        select: 'title description budget currency tags deadline type experience client createdAt',
+        populate: {
+          path: 'client',
+          select: 'name email'
+        }
+      })
+      .select('savedJobs');
+
+    if (!freelancer) {
+      throw new Error('Freelancer not found');
+    }
+
+    console.log('✅ Saved jobs fetched successfully:', freelancer.savedJobs.length);
+    return freelancer.savedJobs || [];
+  } catch (error) {
+    console.error('❌ Error in getSavedJobs service:', error);
+    throw error;
+  }
 };
 
 exports.respondToOffer = async (freelancerId, offerId, status) => {
