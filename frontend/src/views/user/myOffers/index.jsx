@@ -147,7 +147,9 @@ const handleHireFreelancer = async (freelancerId, applicantId) => {
                 </div>
                 <div className="ml-3">
                   <p className="text-xs font-medium text-slate-500">Duration</p>
-                  <p className="font-semibold text-slate-800">{selectedOffer.deadline}</p>
+                  <p className="font-semibold text-slate-800">
+                    {new Date(selectedOffer.deadline).toISOString().slice(0, 10)}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center">
@@ -258,7 +260,7 @@ const handleHireFreelancer = async (freelancerId, applicantId) => {
                     </div>
                     <div className="flex items-center px-3 py-2 mr-4 rounded-lg bg-slate-50">
                       <Calendar size={16} className="text-slate-600" />
-                      <span className="ml-2 text-sm font-semibold text-slate-800">{applicant.proposedDuration}</span>
+                      <span className="ml-2 text-sm font-semibold text-slate-800">{new Date(applicant.proposedDuration).toISOString().slice(0, 10)}</span>
                     </div>
                   </div>
                 </div>
@@ -334,7 +336,7 @@ const handleHireFreelancer = async (freelancerId, applicantId) => {
                 </div>
                 <div className="flex flex-col">
                   <span className="text-xs font-medium text-slate-500">Duration</span>
-                  <span className="text-sm font-semibold text-slate-800">{offer.deadline}</span>
+                  <span className="text-sm font-semibold text-slate-800">{new Date(offer.deadline).toISOString().slice(0, 10)}</span>
                 </div>
                 <div className="flex flex-col">
                   <span className="text-xs font-medium text-slate-500">Experience</span>

@@ -14,7 +14,7 @@ const EditOfferPage = () => {
   // State for form fields
   const [price, setPrice] = useState(500);
   const [currency, setCurrency] = useState('MAD');
-  const [deliveryTime, setDeliveryTime] = useState(7);
+  const [deliveryTime, setDeliveryTime] = useState('')
   const [coverLetter, setCoverLetter] = useState('');
   const [submitting, setSubmitting] = useState(false);
   
@@ -87,7 +87,7 @@ const EditOfferPage = () => {
   // États de chargement et d'erreur
   if (loading.jobs) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#518394]"></div>
       </div>
     );
@@ -95,10 +95,10 @@ const EditOfferPage = () => {
   
   if (error.jobs) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-red-600 mb-2">Erreur de chargement</h2>
-          <p className="text-gray-600 mb-4">{error.jobs}</p>
+          <h2 className="mb-2 text-xl font-semibold text-red-600">Erreur de chargement</h2>
+          <p className="mb-4 text-gray-600">{error.jobs}</p>
           <button 
             onClick={() => navigate('/freelancer/home')}
             className="px-4 py-2 bg-[#518394] text-white rounded hover:bg-[#406c7a]"
@@ -112,10 +112,10 @@ const EditOfferPage = () => {
   
   if (!jobDetails) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-600 mb-2">Mission non trouvée</h2>
-          <p className="text-gray-500 mb-4">La mission demandée n'existe pas ou a été supprimée.</p>
+          <h2 className="mb-2 text-xl font-semibold text-gray-600">Mission non trouvée</h2>
+          <p className="mb-4 text-gray-500">La mission demandée n'existe pas ou a été supprimée.</p>
           <button 
             onClick={() => navigate('/freelancer/home')}
             className="px-4 py-2 bg-[#518394] text-white rounded hover:bg-[#406c7a]"
@@ -131,10 +131,10 @@ const EditOfferPage = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header avec bouton retour */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-5xl mx-auto px-4 py-4">
+        <div className="max-w-5xl px-4 py-4 mx-auto">
           <button 
             onClick={() => navigate('/freelancer/home')}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors"
+            className="flex items-center gap-2 text-gray-600 transition-colors hover:text-gray-800"
           >
             <ArrowLeft size={20} />
             <span>Retour aux missions</span>
@@ -193,8 +193,8 @@ const EditOfferPage = () => {
             <div className="p-6 bg-white rounded-lg shadow border border-[#4242425a]">
               <h2 className="mb-4 text-lg font-medium">Détails du client</h2>
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                  <span className="text-white font-semibold text-sm">
+                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-500">
+                  <span className="text-sm font-semibold text-white">
                     {jobDetails.clientName ? jobDetails.clientName.charAt(0).toUpperCase() : 'C'}
                   </span>
                 </div>
@@ -250,33 +250,30 @@ const EditOfferPage = () => {
                       </div>
                     </div>
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="mt-1 text-xs text-gray-500">
                     Budget du client: {jobDetails.price} {jobDetails.currency || 'MAD'}
                   </p>
                 </div>
                 
-                {/* Delivery Time */}
+                {/* Delivery Date */}
                 <div className="mb-6">
                   <label className="block mb-2 text-sm font-medium text-gray-700">
-                    Délai de livraison
+                    Date de livraison
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                      <Clock size={16} className="text-gray-400" />
+                      <Calendar size={16} className="text-gray-400" />
                     </div>
                     <input
-                      type="number"
+                      type="date"
                       value={deliveryTime}
-                      onChange={(e) => setDeliveryTime(Number(e.target.value))}
-                      className="block w-full py-2 pl-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#518394] focus:border-transparent"
-                      min="1"
+                      onChange={(e) => setDeliveryTime(e.target.value)}
+                      className="block w-full py-2 pl-10 pr-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#518394] focus:border-transparent"
+                      min={new Date().toISOString().split('T')[0]} // Date minimum = aujourd'hui
                       required
                     />
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 pointer-events-none">
-                      jours
-                    </div>
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="mt-1 text-xs text-gray-500">
                     Délai souhaité par le client: {jobDetails.timeline}
                   </p>
                 </div>
@@ -294,7 +291,7 @@ const EditOfferPage = () => {
                     placeholder="Présentez-vous et expliquez pourquoi vous êtes la personne idéale pour ce projet..."
                     required
                   ></textarea>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="mt-1 text-xs text-gray-500">
                     {coverLetter.length}/1000 caractères
                   </p>
                 </div>
@@ -302,7 +299,7 @@ const EditOfferPage = () => {
                 {/* Attachment options */}
                 <div className="mb-6">
                   <h3 className="mb-3 text-sm font-medium text-gray-700">Pièces jointes (facultatif)</h3>
-                  <div className="p-4 text-center border border-gray-300 border-dashed rounded-md hover:border-gray-400 transition-colors">
+                  <div className="p-4 text-center transition-colors border border-gray-300 border-dashed rounded-md hover:border-gray-400">
                     <button type="button" className="text-sm font-medium text-teal-600 hover:text-teal-700">
                       + Ajouter des fichiers ou un portfolio
                     </button>

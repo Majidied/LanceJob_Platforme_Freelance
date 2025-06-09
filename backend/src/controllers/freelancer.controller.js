@@ -84,7 +84,7 @@ exports.applyForMission = async (req, res, next) => {
       coverLetter: proposal.coverLetter,
       proposedPrice: Number(proposal.proposedPrice), // S'assurer que c'est un nombre
       currency: proposal.currency || 'MAD',
-      deliveryTime: Number(proposal.deliveryTime), // S'assurer que c'est un nombre
+      deliveryTime: proposal.deliveryTime, // S'assurer que c'est un nombre
       attachments: proposal.attachments || []
     };
     

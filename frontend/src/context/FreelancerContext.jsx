@@ -168,7 +168,7 @@ export const FreelancerProvider = ({ children }) => {
             status: app.status || 'pending',
             proposedPrice: Number(parsedProposal.proposedPrice) || 0,
             currency: parsedProposal.currency || 'MAD',
-            deliveryTime: Number(parsedProposal.deliveryTime) || 0,
+            deliveryTime: parsedProposal.deliveryTime || new Date().toISOString(),
             coverLetter: parsedProposal.coverLetter || '',
             appliedAt: app.applicationDate || app.appliedAt || new Date().toISOString(),
             skills: (app.mission && Array.isArray(app.mission.tags)) ? app.mission.tags : 
@@ -200,7 +200,7 @@ export const FreelancerProvider = ({ children }) => {
             status: 'pending',
             proposedPrice: 1200,
             currency: 'MAD',
-            deliveryTime: 14,
+            deliveryTime: new Date().toISOString(),
             coverLetter: 'Je suis très intéressé par votre projet...',
             appliedAt: new Date().toISOString(),
             skills: ['React Native', 'JavaScript', 'Node.js'],

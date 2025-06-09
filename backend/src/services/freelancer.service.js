@@ -348,7 +348,7 @@ exports.getAppliedMissions = async (freelancerId) => {
 
             parsedProposal.proposedPrice = Number(parsed.proposedPrice) || 0;
             parsedProposal.currency = parsed.currency || 'MAD';
-            parsedProposal.deliveryTime = Number(parsed.deliveryTime) || 0;
+            parsedProposal.deliveryTime = parsed.deliveryTime || 0;
             parsedProposal.coverLetter = parsed.coverLetter || '';
           } catch (e) {
             console.error(`SERVICE: Error parsing proposal for app ${app._id}:`, e.message, app.proposal);
@@ -498,7 +498,7 @@ exports.getSavedJobs = async (freelancerId) => {
           const parsed = typeof updatedApplication.proposal === 'string' ? JSON.parse(updatedApplication.proposal) : updatedApplication.proposal;
           parsedProposal.proposedPrice = Number(parsed.proposedPrice) || 0;
           parsedProposal.currency = parsed.currency || 'MAD';
-          parsedProposal.deliveryTime = Number(parsed.deliveryTime) || 0;
+          parsedProposal.deliveryTime = parsed.deliveryTime || 0;
           parsedProposal.coverLetter = parsed.coverLetter || '';
       } catch (e) { /* defaults will be used */ }
   }
