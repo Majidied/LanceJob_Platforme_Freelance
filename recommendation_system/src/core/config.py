@@ -21,7 +21,7 @@ class Config:
     # Model Configuration
     CONTENT_WEIGHT = float(os.getenv('CONTENT_WEIGHT', 0.6))
     COLLABORATIVE_WEIGHT = float(os.getenv('COLLABORATIVE_WEIGHT', 0.4))
-    MIN_INTERACTIONS_FOR_CF = int(os.getenv('MIN_INTERACTIONS_FOR_CF', 5))
+    MIN_INTERACTIONS_FOR_CF = int(os.getenv('MIN_INTERACTIONS_FOR_CF', 2))  # Lowered from 5 to 2
     
     # Cache Configuration
     CACHE_EXPIRY_HOURS = int(os.getenv('CACHE_EXPIRY_HOURS', 24))

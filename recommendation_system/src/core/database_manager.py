@@ -34,10 +34,10 @@ class DatabaseManager:
     def _create_indexes(self):
         """Create database indexes for optimal performance"""
         try:
-            # Interactions collection indexes
+            # Interactions collection indexes - updated to match MongoDB schema
             self.interactions.create_index([("freelancer_id", 1), ("timestamp", -1)])
             self.interactions.create_index([("mission_id", 1)])
-            self.interactions.create_index([("type", 1)])
+            self.interactions.create_index([("interaction_type", 1)])  # Fixed: was "type"
             
             # Missions collection indexes
             self.missions.create_index([("status", 1)])
@@ -226,13 +226,23 @@ class DatabaseManager:
                     "mission_id": 1,
                     "interaction_type": 1,  # Fixed: was "type"
                     "timestamp": 1,
-                    "metadata": 1  # Added metadata field
+                    "metadata": 1,  # Added metadata field
+                    "duration": 1,  # Added duration field
+                    "source": 1     # Added source field
                 }
             ))
             
             # Convert ObjectId to string
             for interaction in interactions:
                 interaction['_id'] = str(interaction['_id'])
+                # Convert freelancer_id and mission_id ObjectIds to strings
+                if 'freelancer_id' in interaction:
+                    interaction['freelancer_id'] = str(interaction['freelancer_id'])
+                if 'mission_id' in interaction:
+                    interaction['mission_id'] = str(interaction['mission_id'])
+                # Ensure backward compatibility
+                if 'interaction_type' in interaction and 'type' not in interaction:
+                    interaction['type'] = interaction['interaction_type']
             
             return interactions
         except Exception as e:
@@ -240,20 +250,36 @@ class DatabaseManager:
             return []
     
     def save_interaction(self, interaction_data: Dict) -> bool:
-        """Save user interaction to database"""
+        """Save user interaction to database with enhanced field mapping"""
         try:
             # Add timestamp if not present
             if 'timestamp' not in interaction_data:
                 interaction_data['timestamp'] = datetime.now()
             
+            # Ensure required fields are properly mapped for database schema
+            if 'interaction_type' not in interaction_data and 'type' in interaction_data:
+                interaction_data['interaction_type'] = interaction_data['type']
+            
+            # Ensure metadata is always a dict
+            if 'metadata' not in interaction_data:
+                interaction_data['metadata'] = {}
+            
+            # Log the interaction structure for debugging
+            logger.info(f"Saving interaction with structure: {list(interaction_data.keys())}")
+            
             result = self.interactions.insert_one(interaction_data)
             
             if result.inserted_id:
-                logger.info(f"Saved interaction: {interaction_data['type']} for freelancer {interaction_data['freelancer_id']}")
+                interaction_type = interaction_data.get('interaction_type', interaction_data.get('type', 'unknown'))
+                freelancer_id = interaction_data.get('freelancer_id', 'unknown')
+                logger.info(f"Successfully saved interaction: {interaction_type} for freelancer {freelancer_id}")
                 return True
-            return False
+            else:
+                logger.error("Failed to insert interaction - no ID returned")
+                return False
         except Exception as e:
             logger.error(f"Error saving interaction: {e}")
+            logger.error(f"Interaction data: {interaction_data}")
             return False
     
     def get_mission_applications(self, mission_id: str) -> List[Dict]:
@@ -407,14 +433,35 @@ class DatabaseManager:
             bool: True if the interaction was saved successfully, False otherwise.
         """
         try:
+            # Convert string IDs to ObjectIds for proper database schema compliance
+            try:
+                freelancer_object_id = ObjectId(freelancer_id)
+            except:
+                freelancer_object_id = freelancer_id
+                
+            try:
+                mission_object_id = ObjectId(mission_id)
+            except:
+                mission_object_id = mission_id
+            
+            # Create interaction document with proper field names matching MongoDB schema
             interaction = {
-                "freelancer_id": freelancer_id,
-                "mission_id": mission_id,
-                "type": interaction_type,
-                "timestamp": datetime.now()
+                "freelancer_id": freelancer_object_id,
+                "mission_id": mission_object_id,
+                "interaction_type": interaction_type,  # Fixed: was "type", now matches schema
+                "timestamp": datetime.now(),
+                "metadata": metadata if metadata else {}  # Ensure metadata is always present
             }
+            
+            # Add required database fields that were appearing as NULL
             if metadata:
-                interaction.update(metadata)
+                # Extract common fields from metadata and put them at top level
+                interaction.update({
+                    "duration": metadata.get("duration"),
+                    "source": metadata.get("source"),
+                    "type": interaction_type,  # Legacy compatibility field
+                })
+            
             return self.save_interaction(interaction)
         except Exception as e:
             logger.error(f"Error tracking interaction: {e}")

@@ -1,226 +1,451 @@
-//freelancer/home/index.jsx - Enhanced with ML recommendations (Fixed Design)
-import React, { useState, useEffect, useMemo } from 'react';
-import { Heart } from 'lucide-react';
+//freelancer/home/index.jsx - Optimized Version
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Heart, BarChart3, Activity } from 'lucide-react';
 import { Link } from "react-router-dom";
 import { useFreelancer } from '../../../context/FreelancerContext';
 import useUser from '../../../hooks/useUser';
 import useRecommendations from '../../../hooks/useRecommendations';
+import useJobTracking from '../../../hooks/useJobTracking';
+import TrackingAnalytics from '../../../components/tracking/TrackingAnalytics';
+import TrackingDemo from '../../../components/tracking/TrackingDemo';
+
+// Constants
+const TABS = [
+  { id: 'bestMatches', name: 'Best Matches' },
+  { id: 'mostRecent', name: 'Most Recent' }
+];
+
+const RECOMMENDATIONS_CONFIG = {
+  limit: 20,
+  includeApplied: false
+};
+
+const MAX_TRACKING_HISTORY = 100;
+const NEW_JOB_THRESHOLD_HOURS = 24;
+
+// Utility functions
+const getRelativeTime = (dateString) => {
+  if (!dateString) return 'Date inconnue';
+  
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now - date) / 1000);
+  
+  if (diffInSeconds < 60) return 'just now';
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+  if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)} days ago`;
+  return date.toLocaleDateString();
+};
+
+const getSafeValue = (value, fallback = 'Non spécifié') => 
+  value != null && value !== undefined ? value : fallback;
+
+const getJobAge = (dateString) => {
+  if (!dateString) return Infinity;
+  return Math.floor((new Date() - new Date(dateString)) / (1000 * 60 * 60));
+};
+
+const sortJobsByDate = (jobs) => 
+  [...jobs].sort((a, b) => {
+    const dateA = new Date(a.createdAt || a.updatedAt || 0);
+    const dateB = new Date(b.createdAt || b.updatedAt || 0);
+    return dateB - dateA;
+  });
 
 const Home = () => {
+  // State management
   const [activeTab, setActiveTab] = useState('bestMatches');
-  const tabs = [
-    { id: 'bestMatches', name: 'Best Matches' },
-    { id: 'mostRecent', name: 'Most Recent' }
-  ];
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showTrackingDemo, setShowTrackingDemo] = useState(false);
+  const [trackingHistory, setTrackingHistory] = useState([]);
+  const [lastTrackedSession, setLastTrackedSession] = useState(null); // Track last session to prevent duplicates
   
+  // Context and hooks
   const { jobs, loading, error, fetchJobs, toggleSaveJob } = useFreelancer();
-  const { user: _user } = useUser(); // Keep for future use
+  const { user: _user } = useUser();
   
-  // Get recommendations for Best Matches tab
+  const {
+    trackJobView,
+    trackJobClick,
+    trackJobApplication,
+    trackJobSave,
+    trackTabSwitch,
+    trackRefresh
+  } = useJobTracking();
+  
   const {
     recommendations,
     isLoading: isRecommendationsLoading,
     isError: isRecommendationsError,
     error: recommendationsError,
-    trackMissionClick,
-    trackMissionApplication,
-    trackMissionSave,
     trackBatchViews,
     refetch: refetchRecommendations
-  } = useRecommendations({
-    limit: 20,
-    includeApplied: false
-  });
+  } = useRecommendations(RECOMMENDATIONS_CONFIG);
+
+  // Extract missions from recommendations
+  const recommendedJobs = useMemo(() => {
+    if (!recommendations?.length) return [];
+    return recommendations.map(rec => rec.mission).filter(Boolean);
+  }, [recommendations]);
   
-  // ✅ Mémoriser les jobs triés selon l'onglet actif
+  // Memoized computed values
+  const isLoading = useMemo(() => 
+    loading.jobs || (activeTab === 'bestMatches' && isRecommendationsLoading),
+    [loading.jobs, activeTab, isRecommendationsLoading]
+  );
+  
+  const hasError = useMemo(() => 
+    (activeTab === 'mostRecent' && error.jobs) ||
+    (activeTab === 'bestMatches' && isRecommendationsError),
+    [activeTab, error.jobs, isRecommendationsError]
+  );
+  
+  const currentError = useMemo(() => 
+    activeTab === 'bestMatches' ? recommendationsError : error.jobs,
+    [activeTab, recommendationsError, error.jobs]
+  );
+  
   const sortedJobs = useMemo(() => {
     if (activeTab === 'bestMatches') {
-      // Use ML recommendations for Best Matches tab, fallback to regular jobs if no recommendations
-      if (recommendations && recommendations.length > 0) {
-        return recommendations;
-      }
-      return [];
-    } else {
-      // Use regular jobs for Most Recent tab
-      if (!jobs || jobs.length === 0) return [];
-      
-      // Créer une copie pour éviter de muter l'état original
-      const jobsCopy = [...jobs];
-      
-      // Trier par date de création (plus récent en premier)
-      return jobsCopy.sort((a, b) => {
-        const dateA = new Date(a.createdAt || a.updatedAt || 0);
-        const dateB = new Date(b.createdAt || b.updatedAt || 0);
-        return dateB - dateA; // Tri décroissant (plus récent en premier)
-      });
+      return recommendedJobs || [];
     }
-  }, [jobs, recommendations, activeTab]);
-  
-  // Check if we should show the "no recommendations" message
-  const shouldShowNoRecommendationsMessage = useMemo(() => {
-    return activeTab === 'bestMatches' && 
-           !isRecommendationsLoading && 
-           (!recommendations || recommendations.length === 0) &&
-           (!jobs || jobs.length === 0);
-  }, [activeTab, isRecommendationsLoading, recommendations, jobs]);
-  
-  // Fonction utilitaire pour calculer le temps relatif
-  const getRelativeTime = (dateString) => {
-    if (!dateString) return 'Date inconnue';
     
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInSeconds = Math.floor((now - date) / 1000);
+    if (!jobs?.length) return [];
+    return sortJobsByDate(jobs);
+  }, [jobs, recommendedJobs, activeTab]);
+  
+  const shouldShowNoRecommendationsMessage = useMemo(() => 
+    activeTab === 'bestMatches' && 
+    !isRecommendationsLoading && 
+    !recommendations?.length &&
+    !jobs?.length,
+    [activeTab, isRecommendationsLoading, recommendations, jobs]
+  );
+  
+  const hasContent = useMemo(() => 
+    !shouldShowNoRecommendationsMessage && sortedJobs.length > 0,
+    [shouldShowNoRecommendationsMessage, sortedJobs.length]
+  );
+  
+  // Optimized tracking functions with debouncing
+  const addToTrackingHistory = useCallback((interaction) => {
+    setTrackingHistory(prev => {
+      // Prevent duplicate consecutive interactions of the same type
+      const lastInteraction = prev[prev.length - 1];
+      if (lastInteraction && 
+          lastInteraction.jobId === interaction.jobId && 
+          lastInteraction.interactionType === interaction.interactionType &&
+          Date.now() - new Date(lastInteraction.metadata.timestamp).getTime() < 1000) {
+        return prev; // Skip duplicate within 1 second
+      }
+      
+      return [...prev.slice(-(MAX_TRACKING_HISTORY - 1)), interaction];
+    });
+  }, []);
+  
+  const createTrackingMetadata = useCallback((additionalData = {}) => ({
+    fromRecommendations: activeTab === 'bestMatches',
+    tab: activeTab,
+    source: 'home_page',
+    timestamp: new Date().toISOString(),
+    ...additionalData
+  }), [activeTab]);
+  
+  const trackAndStore = useCallback((trackingFunction, jobId, additionalMetadata, interactionType) => {
+    const metadata = createTrackingMetadata(additionalMetadata);
     
-    if (diffInSeconds < 60) return 'just now';
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
-    if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)} days ago`;
-    return date.toLocaleDateString();
-  };
-
-  // Gérer le toggle des favoris avec tracking pour les recommandations
-  const handleToggleFavorite = async (jobId) => {
+    trackingFunction(jobId, metadata);
+    addToTrackingHistory({
+      jobId,
+      interactionType,
+      metadata
+    });
+  }, [createTrackingMetadata, addToTrackingHistory]);
+  
+  // Event handlers
+  const handleTabChange = useCallback((newTab) => {
+    if (newTab === activeTab) return;
+    
+    const oldTab = activeTab;
+    setActiveTab(newTab);
+    
+    trackTabSwitch(oldTab, newTab, createTrackingMetadata());
+    addToTrackingHistory({
+      jobId: 'system',
+      interactionType: 'navigation',
+      metadata: createTrackingMetadata({ fromTab: oldTab, toTab: newTab })
+    });
+  }, [activeTab, trackTabSwitch, createTrackingMetadata, addToTrackingHistory]);
+  
+  const handleToggleFavorite = useCallback(async (jobId) => {
     try {
       const message = await toggleSaveJob(jobId);
       console.log(message);
       
-      // Track save action if this is from Best Matches (recommendations)
-      if (activeTab === 'bestMatches' && recommendations && recommendations.length > 0) {
-        trackMissionSave(jobId, { 
-          action: 'toggle_favorite',
-          fromRecommendations: true 
-        });
-      }
+      trackAndStore(trackJobSave, jobId, { action: 'toggle_favorite' }, 'save');
     } catch (err) {
       console.error('Error toggling job favorite:', err);
     }
-  };
-
-  // Track clicks on job details links
-  const handleJobClick = (jobId) => {
-    if (activeTab === 'bestMatches' && recommendations && recommendations.length > 0) {
-      trackMissionClick(jobId, { 
-        action: 'view_details',
-        fromRecommendations: true 
-      });
+  }, [toggleSaveJob, trackAndStore, trackJobSave]);
+  
+  const handleJobClick = useCallback((jobId) => {
+    trackAndStore(trackJobClick, jobId, { action: 'view_details' }, 'click');
+  }, [trackAndStore, trackJobClick]);
+  
+  const handleApplyClick = useCallback((jobId) => {
+    trackAndStore(trackJobApplication, jobId, { action: 'apply_click' }, 'apply');
+  }, [trackAndStore, trackJobApplication]);
+  
+  // Debounced hover tracking to prevent spam
+  const hoverTimeoutRef = React.useRef(null);
+  
+  const handleJobHover = useCallback((jobId, hoverType) => {
+    // Clear previous timeout
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
     }
-  };
-
-  // Track application clicks
-  const handleApplyClick = (jobId) => {
-    if (activeTab === 'bestMatches' && recommendations && recommendations.length > 0) {
-      trackMissionApplication(jobId, { 
-        action: 'apply_click',
-        fromRecommendations: true 
-      });
+    
+    // Only track hover_start with debouncing, skip hover_end spam
+    if (hoverType === 'hover_start') {
+      hoverTimeoutRef.current = setTimeout(() => {
+        trackAndStore(trackJobView, jobId, { 
+          action: 'card_hover',
+          engagementType: 'hover'
+        }, 'view');
+      }, 300); // 300ms debounce for hover
     }
-  };
-
-  // Track views when jobs are displayed
+  }, [trackAndStore, trackJobView]);
+  
+  const handleSkillClick = useCallback((jobId, skill) => {
+    trackAndStore(trackJobClick, jobId, { 
+      action: 'skill_click',
+      skill,
+      engagementType: 'skill_interest'
+    }, 'click');
+  }, [trackAndStore, trackJobClick]);
+  
+  const handleRefreshJobs = useCallback(() => {
+    const metadata = createTrackingMetadata();
+    trackRefresh(activeTab === 'bestMatches' ? 'recommendations' : 'regular_jobs', metadata);
+    
+    if (activeTab === 'bestMatches') {
+      refetchRecommendations();
+    } else {
+      fetchJobs();
+    }
+  }, [activeTab, trackRefresh, createTrackingMetadata, refetchRecommendations, fetchJobs]);
+  
+  // Effects - Optimized to prevent continuous tracking
   useEffect(() => {
-    if (activeTab === 'bestMatches' && recommendations && recommendations.length > 0) {
-      // Track batch views for all visible recommendations
-      const jobIds = recommendations.map(job => job._id).filter(Boolean);
-      if (jobIds.length > 0) {
+    const jobIds = sortedJobs.map(job => job._id).filter(Boolean);
+    if (!jobIds.length) return;
+    
+    // Create a stable identifier for this view session
+    const sessionId = `${activeTab}-${jobIds.length}-${Date.now()}`;
+    
+    // Check if we already tracked this exact session
+    if (lastTrackedSession === sessionId) return;
+    
+    // Debounce the tracking to prevent rapid fire
+    const trackingTimer = setTimeout(() => {
+      setLastTrackedSession(sessionId);
+      
+      const metadata = createTrackingMetadata({
+        action: 'page_view',
+        jobIds,
+        count: jobIds.length,
+        sessionId
+      });
+      
+      trackJobView('batch', metadata);
+      
+      // Track recommendations specifically
+      if (activeTab === 'bestMatches' && recommendations?.length) {
         trackBatchViews(jobIds, { 
           action: 'page_view',
-          count: jobIds.length 
+          count: jobIds.length,
+          sessionId
         });
       }
+    }, 1000); // 1 second debounce
+    
+    return () => clearTimeout(trackingTimer);
+  }, [activeTab, sortedJobs.length, lastTrackedSession]); // Controlled dependencies
+  
+  // Render helpers
+  const renderNewJobBadge = useCallback((job) => {
+    if (activeTab !== 'mostRecent' || !job.createdAt) return null;
+    
+    const hoursAgo = getJobAge(job.createdAt);
+    if (hoursAgo >= NEW_JOB_THRESHOLD_HOURS) return null;
+    
+    return (
+      <span className="ml-2 px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+        🆕 {hoursAgo < 1 ? 'Nouvelle' : `${hoursAgo}h`}
+      </span>
+    );
+  }, [activeTab]);
+  
+  const renderRecommendationBadge = useCallback((job) => {
+    if (activeTab !== 'bestMatches' || !job.recommendationScore) return null;
+    
+    return (
+      <span className="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
+        🎯 {Math.round(job.recommendationScore * 100)}% match
+      </span>
+    );
+  }, [activeTab]);
+  
+  const renderSkills = useCallback((job) => {
+    if (!job.skills?.length) return null;
+    
+    return (
+      <div className="flex flex-wrap gap-2 mb-4">
+        {job.skills.map((skill, index) => (
+          <span 
+            key={index} 
+            className="px-3 py-1 text-sm text-gray-800 border rounded-full dark:text-white cursor-pointer hover:bg-gray-100 dark:hover:bg-navy-700 transition-colors"
+            onClick={() => handleSkillClick(job._id, skill)}
+            title={`Click to show more jobs with ${skill}`}
+          >
+            {skill}
+          </span>
+        ))}
+      </div>
+    );
+  }, [handleSkillClick]);
+  
+  const renderDebugInfo = useCallback((job, index) => {
+    if (activeTab === 'mostRecent') {
+      return (
+        <div className="text-xs text-gray-400 mt-2">
+          Position: #{index + 1} • Créée le: {job.createdAt ? new Date(job.createdAt).toLocaleDateString('fr-FR') : 'Date inconnue'}
+        </div>
+      );
     }
-  }, [activeTab, recommendations, trackBatchViews]);
-
-  // Fonction pour obtenir une valeur avec fallback
-  const getSafeValue = (value, fallback = 'Non spécifié') => {
-    return value && value !== null && value !== undefined ? value : fallback;
-  };
-
-  // Si chargement en cours
-  if (loading.jobs || (activeTab === 'bestMatches' && isRecommendationsLoading)) {
+    
+    if (activeTab === 'bestMatches' && job.recommendationScore) {
+      return (
+        <div className="text-xs text-gray-400 mt-2">
+          Recommendation #{index + 1} 
+          • Score: {(job.recommendationScore * 100).toFixed(1)}%
+          {job.reasons?.length > 0 && ` • Reasons: ${job.reasons.slice(0, 2).join(', ')}`}
+        </div>
+      );
+    }
+    
+    return null;
+  }, [activeTab]);
+  
+  // Early returns for loading and error states
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#518394]"></div>
       </div>
     );
   }
-
-  // Si erreur pour Most Recent tab
-  if (activeTab === 'mostRecent' && error.jobs) {
+  
+  if (hasError) {
     return (
       <div className="text-red-500 text-center p-4">
-        Error loading jobs: {error.jobs}
-      </div>
-    );
-  }
-
-  // Si erreur pour Best Matches tab
-  if (activeTab === 'bestMatches' && isRecommendationsError) {
-    return (
-      <div className="text-red-500 text-center p-4">
-        <p>Error loading recommendations: {recommendationsError?.message || 'Unknown error'}</p>
+        <p>Error loading {activeTab === 'bestMatches' ? 'recommendations' : 'jobs'}: {currentError?.message || currentError}</p>
         <button 
-          onClick={refetchRecommendations}
-          className="mt-2 px-4 py-2 bg-[#518394] text-white rounded hover:bg-[#406c7a]"
+          onClick={handleRefreshJobs}
+          className="mt-4 px-4 py-2 bg-[#518394] text-white rounded hover:bg-[#406c7a]"
         >
           Retry
         </button>
       </div>
     );
   }
-
+  
   return (
     <div className="flex flex-col h-full">
-      {/* Tabs - Keep exact visual design from image */}
+      {/* Header with tabs and controls */}
       <div className="m-2">
-        <div className="flex">
-          {tabs.map(tab => (
+        <div className="flex justify-between items-center">
+          <div className="flex">
+            {TABS.map(tab => (
+              <button
+                key={tab.id}
+                className={`py-3 px-16 w-1/2 text-center relative ${
+                  activeTab === tab.id 
+                    ? 'text-[#518394] border-b-2 border-[#518394] font-medium' 
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+                onClick={() => handleTabChange(tab.id)}
+              >
+                {tab.name}
+              </button>
+            ))}
+          </div>
+          
+          {/* Analytics and Demo Controls */}
+          <div className="flex gap-2">
             <button
-              key={tab.id}
-              className={`py-3 px-16 w-1/2 text-center relative ${
-                activeTab === tab.id 
-                  ? 'text-[#518394] border-b-2 border-[#518394] font-medium' 
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => setShowTrackingDemo(true)}
+              className="flex items-center gap-2 px-3 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
+              title="Try Live Tracking Demo"
             >
-              {tab.name}
+              <Activity size={16} />
+              <span className="text-sm font-medium">Demo</span>
             </button>
-          ))}
+            
+            <button
+              onClick={() => setShowAnalytics(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors"
+              title="View Tracking Analytics"
+            >
+              <BarChart3 size={18} />
+              <span className="text-sm font-medium">Analytics</span>
+              {trackingHistory.length > 0 && (
+                <span className="bg-indigo-500 text-white text-xs px-2 py-1 rounded-full">
+                  {trackingHistory.length}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
       </div>
       
-      {/* Show "No recommendations" message only when appropriate */}
+      {/* Content area */}
       {shouldShowNoRecommendationsMessage ? (
         <div className="flex-1 flex flex-col items-center justify-center p-8">
           <p className="text-gray-500 text-center mb-4">
             No personalized recommendations available. We're learning your preferences!
           </p>
           <button 
-            onClick={refetchRecommendations}
+            onClick={handleRefreshJobs}
             className="px-4 py-2 bg-[#518394] text-white rounded hover:bg-[#406c7a]"
           >
             Refresh
           </button>
         </div>
-      ) : sortedJobs.length === 0 ? (
+      ) : !hasContent ? (
         <div className="flex-1 flex flex-col items-center justify-center p-8">
           <p className="text-gray-500 text-center mb-4">
             No jobs available at the moment.
           </p>
           <button 
-            onClick={fetchJobs}
+            onClick={handleRefreshJobs}
             className="px-4 py-2 bg-[#518394] text-white rounded hover:bg-[#406c7a]"
           >
             Refresh
           </button>
         </div>
       ) : (
-        /* Job Listings - Keep exact layout from image */
+        /* Job Listings */
         <div className="flex-1 w-full max-w-screen-xl p-4 mx-auto">
           <div className="flex flex-col gap-4">
             {sortedJobs.map((job, index) => (
-              <div key={job._id} className="p-6 bg-white rounded-lg shadow dark:!bg-navy-800 border border-[#4242425a]">
+              <div 
+                key={job._id} 
+                className="p-6 bg-white rounded-lg shadow dark:!bg-navy-800 border border-[#4242425a]"
+                onMouseEnter={() => handleJobHover(job._id, 'hover_start')}
+                // Removed onMouseLeave to prevent spam
+              >
                 <div className="flex justify-between">
                   <div className="flex-1">
                     {/* Job Header */}
@@ -229,31 +454,12 @@ const Home = () => {
                         <h3 className="text-xl font-bold dark:text-white">
                           {getSafeValue(job.title, 'Titre non disponible')}
                         </h3>
-                        {/* Badge pour indiquer si c'est une mission récente (moins de 24h) */}
-                        {activeTab === 'mostRecent' && job.createdAt && (
-                          (() => {
-                            const hoursAgo = Math.floor((new Date() - new Date(job.createdAt)) / (1000 * 60 * 60));
-                            if (hoursAgo < 24) {
-                              return (
-                                <span className="ml-2 px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
-                                  🆕 {hoursAgo < 1 ? 'Nouvelle' : `${hoursAgo}h`}
-                                </span>
-                              );
-                            }
-                            return null;
-                          })()
-                        )}
-                        
-                        {/* Badge pour le score de recommandation */}
-                        {activeTab === 'bestMatches' && job.recommendationScore && (
-                          <span className="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
-                            🎯 {Math.round(job.recommendationScore * 100)}% match
-                          </span>
-                        )}
+                        {renderNewJobBadge(job)}
+                        {renderRecommendationBadge(job)}
                       </div>
                       <div className="flex items-center">
                         <span className="mr-2 text-gray-500">
-                          {job.createdAt ? getRelativeTime(job.createdAt) : 'Date inconnue'}
+                          {getRelativeTime(job.createdAt)}
                         </span>
                         <Heart 
                           className={`w-6 h-6 cursor-pointer transition-colors ${
@@ -265,15 +471,7 @@ const Home = () => {
                     </div>
                     
                     {/* Skills */}
-                    {job.skills && Array.isArray(job.skills) && job.skills.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {job.skills.map((skill, index) => (
-                          <span key={index} className="px-3 py-1 text-sm text-gray-800 border rounded-full dark:text-white">
-                            {skill}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                    {renderSkills(job)}
                     
                     {/* Description */}
                     <p className="mb-4 text-gray-600 dark:text-gray-300">
@@ -287,7 +485,7 @@ const Home = () => {
                       Read more
                     </Link>
                     
-                    {/* Job Details Table - Keep exact layout from image */}
+                    {/* Job Details Table */}
                     <div className="flex mb-4 rounded-lg bg-[#F3F9FA] dark:!bg-navy-900">
                       <div className="flex-1 p-4">
                         <div className="text-sm text-gray-500">Price</div>
@@ -324,24 +522,36 @@ const Home = () => {
                       </div>
                     </div>
                     
-                    {/* Debug info - only show for recommendations */}
-                    {activeTab === 'mostRecent' && (
-                      <div className="text-xs text-gray-400 mt-2">
-                        Position: #{index + 1} • Créée le: {job.createdAt ? new Date(job.createdAt).toLocaleDateString('fr-FR') : 'Date inconnue'}
-                      </div>
-                    )}
-                    
-                    {activeTab === 'bestMatches' && job.recommendationScore && (
-                      <div className="text-xs text-gray-400 mt-2">
-                        Recommendation #{index + 1} 
-                        • Score: {(job.recommendationScore * 100).toFixed(1)}%
-                        {job.reasons && job.reasons.length > 0 && ` • Reasons: ${job.reasons.slice(0, 2).join(', ')}`}
-                      </div>
-                    )}
+                    {/* Debug Info */}
+                    {renderDebugInfo(job, index)}
                   </div>
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+      
+      {/* Modals */}
+      <TrackingAnalytics 
+        trackingData={trackingHistory}
+        isVisible={showAnalytics}
+        onClose={() => setShowAnalytics(false)}
+      />
+      
+      {showTrackingDemo && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-navy-800 rounded-lg p-6 max-w-lg w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold dark:text-white">Live Tracking Demo</h2>
+              <button 
+                onClick={() => setShowTrackingDemo(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+            <TrackingDemo />
           </div>
         </div>
       )}

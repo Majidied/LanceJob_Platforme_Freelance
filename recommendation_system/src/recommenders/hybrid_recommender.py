@@ -38,25 +38,39 @@ class HybridRecommendationSystem:
                 # TODO: Implement cache loading logic
                 return
             
+            logger.info("No cached model found, training from database...")
+            
             # Train from database
             interactions = self.db_manager.get_all_interactions()
+            logger.info(f"Retrieved {len(interactions)} interactions for training")
+            
             if interactions:
+                logger.info("Starting collaborative filtering training...")
                 success = self.collaborative_recommender.train(interactions)
+                logger.info(f"CF training result: {success}")
+                
                 if success:
                     # Cache the trained model
                     model_data = {
                         'timestamp': datetime.now().isoformat(),
                         'stats': self.collaborative_recommender.get_model_stats()
                     }
-                    self.cache_manager.set_similarity_matrix(model_data)
+                    try:
+                        self.cache_manager.set_similarity_matrix(model_data)
+                        logger.info("Model cached successfully")
+                    except Exception as cache_e:
+                        logger.warning(f"Failed to cache model: {cache_e}")
+                    
                     logger.info("Collaborative filtering model initialized successfully")
                 else:
                     logger.warning("Failed to train collaborative filtering model")
             else:
-                logger.info("No interaction data available for collaborative filtering")
+                logger.warning("No interaction data available for collaborative filtering")
                 
         except Exception as e:
             logger.error(f"Error initializing collaborative model: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
 
 
     def get_recommendations(self, freelancer_id: str, limit: int = None, include_applied: bool = False, filters: Dict = None) -> List[Dict]:

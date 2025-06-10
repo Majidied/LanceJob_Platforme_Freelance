@@ -5,6 +5,7 @@
  */
 
 import api from './api';
+import { getUserData } from '../utils/tokenStorage';
 
 class RecommendationService {
   /**
@@ -71,7 +72,16 @@ class RecommendationService {
    */
   async trackInteraction(missionId, interactionType, metadata = {}) {
     try {
+      // Get user from localStorage or token
+      const user = getUserData();
+      const freelancerId = user && user.role === 'freelancer' ? (user.id || user._id) : null;
+      if (!freelancerId) {
+        console.warn('No user ID available for tracking');
+        return { success: false, error: 'No user ID available' };
+      }
+
       const payload = {
+        freelancerId,
         missionId,
         interactionType,
         metadata: {
@@ -249,9 +259,20 @@ class RecommendationService {
    */
   async batchTrackInteractions(interactions) {
     try {
+      // Get user from localStorage or token
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const freelancerId = user.id || user._id;
+      
+      if (!freelancerId) {
+        console.warn('No user ID available for batch tracking');
+        return { success: false, error: 'No user ID available' };
+      }
+
       const payload = {
         interactions: interactions.map(interaction => ({
-          ...interaction,
+          freelancerId,
+          missionId: interaction.missionId,
+          interactionType: interaction.interactionType,
           metadata: {
             ...interaction.metadata,
             timestamp: new Date().toISOString(),

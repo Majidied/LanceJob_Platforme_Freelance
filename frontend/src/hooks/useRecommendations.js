@@ -45,7 +45,7 @@ export const useRecommendations = (options = {}) => {
         },
         select: (response) => {
             // Extract and enrich the recommendations from the response
-            const recommendations = response?.data?.recommendations || [];
+            const recommendations = response?.recommendations || [];
             console.log(response)
             return {
                 recommendations: recommendations.map(rec => ({

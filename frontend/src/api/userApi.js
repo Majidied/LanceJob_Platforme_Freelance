@@ -1,4 +1,5 @@
 import api from "./api";
+import { setToken, storeUserData, clearAuthData } from "../utils/tokenStorage";
 
 /**
  * Authenticates a user and stores tokens in localStorage
@@ -7,6 +8,14 @@ export const login = async (email, password) => {
     try {
         const response = await api.post('/auth/login', { email, password });
         if (response.data) {
+            // Use centralized token storage instead of direct localStorage
+            if (response.data.token) {
+                setToken(response.data.token);
+            }
+            if (response.data.user) {
+                storeUserData(response.data.user);
+            }
+            // Keep legacy storage for backward compatibility temporarily
             localStorage.setItem('user_tokens', JSON.stringify(response.data));
         }
         return response.data;
@@ -35,6 +44,9 @@ export const register = async (firstName, lastName, email, password, role, agree
 export const logout = async () => {
     try {
         const response = await api.post('/auth/logout');
+        // Clear all authentication data from localStorage
+        clearAuthData();
+        localStorage.removeItem('user_tokens'); // Clear legacy storage too
         return response.data;
     } catch (error) {
         console.error("Logout error:", error);
