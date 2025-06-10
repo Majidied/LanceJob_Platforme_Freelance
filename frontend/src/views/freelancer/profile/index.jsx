@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import avatar from "../../../assets/img/profile/banner.png";
+
 const Profile = () => {
   const [profileData, setProfileData] = useState({
     firstName: "Musharof",

@@ -1,69 +1,49 @@
-import { RouterProvider, createBrowserRouter, Navigate } from 'react-router-dom';
-import Landing from '../pages/landing';
-import ProfileSetup from '../pages/Profile.page';
-import LoginPage from '../pages/LoginPage';
-import RegisterPage from '../pages/RegisterPage';
-import Userayout from "../pages/user";
-import FreelancerLayout from "../pages/freelancer";
-import { hasAccessToken, getUserData } from '../utils/tokenStorage';
-import { ProtectedRoute } from './ProtectedRoute';
-import Job from '../components/landing/job';
-import Search from '../pages/search';
+import React, { Suspense, useMemo } from 'react';
+import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
+import { routesConfig } from './config';
+import useUser from '../hooks/useUser';
+import { hasAccessToken } from '../utils/tokenStorage';
+import LoadingSpinner from '../pages/LoadingSpiner';
+
 const Routes = () => {
-  const userData = getUserData();
-  const isFreelancer = userData?.isFreelancer || false;
+  const { user, isLoading } = useUser();
+  const hasToken = hasAccessToken();
 
-  const routesForPublic = [
-    { path: '/search', element: < Search/> },
-    { path: '/', element: <Landing /> },
-    { path: '/service', element: <div>Service Page</div> },
-    { path: '/about-us', element: <div>About Us</div> }
-  ];
+  console.log('User:', user, 'Loading:', isLoading, 'Has Token:', hasToken);
 
-  const authenticatedChildren = [
-    {
-      path: 'complete-profile',
-      element: <ProfileSetup />,
-    },
-    ...(!isFreelancer
-      ? [{ path: "user/*", element: <Userayout /> }]
-      : [{ path: "user/*", element: <Navigate to="/freelancer" /> }]),
-    ...(isFreelancer
-      ? [{ path: "freelancer/*", element: <FreelancerLayout /> }]
-      : [{ path: "freelancer/*", element: <Navigate to="/user" /> }]),
-  ];
+  // Memoize router creation to prevent recreation on every render
+  const router = useMemo(() => {
+    const mappedRoutes = routesConfig.map(({ path, element, redirectIfAuthenticated }) => {
+      // Handle redirect for authenticated users on auth pages
+      if (redirectIfAuthenticated && hasToken) {
+        const redirectTo = user?.role === 'freelancer' ? '/freelancer/home' : '/user/home';
+        return { 
+          path, 
+          element: <Navigate to={redirectTo} replace />,
+          errorElement: <div>Something went wrong</div>
+        };
+      }
+      
+      return { 
+        path, 
+        element,
+        errorElement: <div>Something went wrong</div>
+      };
+    });
 
-  const routesForAuthenticatedOnly = [
-    {
-      path: '/',
-      element: <ProtectedRoute />,
-      children: authenticatedChildren,
-    },
-  ];
+    return createBrowserRouter(mappedRoutes);
+  }, [hasToken, user?.role]);
 
-  const routesForNotAuthenticatedOnly = [
-    { path: '/login', element: <LoginPage /> },
-    { path: '/register', element: <RegisterPage /> },
-  ];
+  // Show loading while user data is being fetched
+  if (isLoading) {
+    return <LoadingSpinner/>;
+  }
 
-  const notFoundRoute = [
-    { path: '*', element: <div>404 Not Found</div> },
-  ];
-
-  const router = createBrowserRouter([
-    ...routesForPublic,
-    ...(!hasAccessToken()
-      ? routesForNotAuthenticatedOnly
-      : ['/login', '/register'].map(path => ({
-          path,
-          element: <Navigate to="/" />,
-        }))
-    ),
-    ...routesForAuthenticatedOnly,
-    ...notFoundRoute,
-  ]);
-
-  return <RouterProvider router={router} />;
+  return (
+    <Suspense fallback={<LoadingSpinner/>}>
+      <RouterProvider router={router} />
+    </Suspense>
+  );
 };
 
 export default Routes;

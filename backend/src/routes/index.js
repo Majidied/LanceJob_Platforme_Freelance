@@ -2,14 +2,18 @@ const express = require('express');
 const userRoutes = require('./user.routes');
 const missionRoutes = require('./mission.routes');
 const authRoutes = require('./auth.routes'); // Uncomment if you have auth routes
-const freelancerRoutes = require('./freelancer.routes'); 
+const freelancerRoutes = require('./freelancer.routes');
+const clientRoutes = require('./client.routes');
+const { authenticateJWT, verificationUser} = require('../middleware/auth.middleware');
+
 
 const router = express.Router();
 
-router.use('/users', userRoutes);
-router.use('/auth', authRoutes); // Uncomment if you have auth routes
-router.use('/mission', missionRoutes);
-router.use('/freelancer', freelancerRoutes);
+router.use('/users', authenticateJWT, userRoutes);
+router.use('/auth', authRoutes);
+router.use('/mission', authenticateJWT, verificationUser, missionRoutes);
+router.use('/freelancer', authenticateJWT, verificationUser, freelancerRoutes);
+router.use('/client', authenticateJWT, verificationUser, clientRoutes);
 // Health check endpoint
 router.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });

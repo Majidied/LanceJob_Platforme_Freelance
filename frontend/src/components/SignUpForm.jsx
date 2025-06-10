@@ -1,16 +1,21 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
 import useUser from '../hooks/useUser';
+import useNotification from '../hooks/useNotification';
 
 const SignUpForm = () => {
-  const [role, setRole] = useState('Freelancer');
+  const [role, setRole] = useState('freelancer');
   const [showRoleMenu, setShowRoleMenu] = useState(false);
+  const navigate = useNavigate();
+  const notify = useNotification();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
     password: '',
     confirmPassword: '',
+    role: role,
     agreedToTerms: false
   });
   const [errors, setErrors] = useState({});
@@ -296,15 +301,14 @@ const SignUpForm = () => {
         
         // Call the registerUser function from useUser hook
         await registerUser(userData);
-        
-        // If registration is successful, store email for verification page
-        localStorage.setItem('verificationEmail', formData.email);
+        notify('Registration successful! Please check your email for verification.', 'success');
         
         // Redirect to verification page
-        window.location.href = `/verify-email?email=${encodeURIComponent(formData.email)}`;
+        navigate('/verify-email');
         
       } catch (error) {
         console.error('Registration error:', error);
+        notify('Registration failed. Please try again.', 'error');
         // The error is already handled by the useUser hook via isRegisterError and registerError
       }
     }
@@ -312,7 +316,7 @@ const SignUpForm = () => {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    window.location.href = '/login';
+    navigate('/login');
   };
 
   return (
@@ -329,13 +333,13 @@ const SignUpForm = () => {
               <div className="role-dropdown">
                 <div 
                   className="role-option"
-                  onClick={() => selectRole('Freelancer')}
+                  onClick={() => selectRole('freelancer')}
                 >
                   Freelancer
                 </div>
                 <div 
                   className="role-option"
-                  onClick={() => selectRole('Client')}
+                  onClick={() => selectRole('client')}
                 >
                   Client
                 </div>
@@ -347,7 +351,7 @@ const SignUpForm = () => {
         {/* Show general error message if registration failed */}
         {isRegisterError && (
           <div className="error-message" style={{ textAlign: 'center', marginBottom: '15px' }}>
-            {registerError || 'Registration failed. Please try again.'}
+            {registerError?.message || registerError?.response?.data?.message || 'Registration failed. Please try again.'}
           </div>
         )}
 

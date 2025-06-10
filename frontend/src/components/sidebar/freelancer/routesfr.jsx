@@ -1,10 +1,10 @@
+//components/sidebar/freelancer/routesfr.jsx - Version alternative (optionnelle)
 import React from "react";
-
-
 import Home from "../../../views/freelancer/home";
 import SavedJobs from "../../../views/freelancer/savedJobs";
-import Offers from "../../../views/freelancer/offers";
+import Offers from "../../../views/freelancer/savedJobs/offers";
 import Messages from "../../../views/freelancer/messages";
+import ProposePage from "../../../views/freelancer/propose";
 // Icon Imports
 import {
   MdHome,
@@ -19,7 +19,7 @@ const routes = [
     layout: "/freelancer",
     path: "home",
     icon: <MdHome className="w-6 h-6" />,
-    component: <Home />,
+    component: <Home />, // Gardez comme avant, le Provider est maintenant au niveau supérieur
   },
   {
     name: "Saved Jobs",
@@ -33,7 +33,7 @@ const routes = [
     name: "Offers",
     layout: "/freelancer",
     path: "offers",
-    icon: <MdOutlineWorkHistory  className="w-6 h-6" />,
+    icon: <MdOutlineWorkHistory className="w-6 h-6" />,
     component: <Offers />,
     secondary: true,
   },
@@ -41,10 +41,12 @@ const routes = [
     name: "Messages",
     layout: "/freelancer",
     path: "messages",
-    icon: <BiMessageRoundedDetail  className="w-6 h-6" />,
+    icon: <BiMessageRoundedDetail className="w-6 h-6" />,
     component: <Messages />,
     secondary: true,
   },
-  
+
+
 ];
+
 export default routes;

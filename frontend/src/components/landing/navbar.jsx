@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import logo from "../../assets/LanceLogo.png";
+import { Link } from 'react-router-dom';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -69,16 +70,16 @@ const Navbar = () => {
         <div className="flex items-center">
           {/* Desktop Buttons - Hidden on mobile */}
           <div className="hidden mr-8 md:flex space-x-4">
-            <Link to="/login">
-              <button className="border border-[#5A8C8E] text-[#5A8C8E] px-4 py-1 rounded-lg font-semibold hover:bg-[#5A8C8E] hover:text-white transition-colors">
+            <button className="border border-[#5A8C8E] text-[#5A8C8E] px-4 py-1 rounded-lg font-semibold hover:bg-[#5A8C8E] hover:text-white transition-colors">
+              <Link to="/login">
                 Login
-              </button>
-            </Link>
-            <Link to="/register">
-              <button className="bg-[#5A8C8E] text-white px-4 py-1 rounded-lg font-semibold hover:bg-[#4a7476] transition-colors">
+              </Link>
+            </button>
+            <button className="bg-[#5A8C8E] text-white px-4 py-1 rounded-lg font-semibold hover:bg-[#4a7476] transition-colors">
+              <Link to="/register">
                 Sign up
-              </button>
-            </Link>
+              </Link>
+            </button>
           </div>
 
           {/* Mobile Buttons - Hidden on desktop */}

@@ -74,3 +74,20 @@ exports.searchMission = async (req, res, next) => {
   }
 };
 
+exports.updateApplicationStatus = async (req, res) => {
+  const { missionId, applicationId } = req.params;
+  const { status,currentApplicationId } = req.body;
+
+  try {
+    const updatedMission = await missionService.updateApplicationStatus(missionId, applicationId, status,currentApplicationId);
+
+    if (!updatedMission) {
+      return res.status(404).json({ message: 'Mission or application not found' });
+    }
+
+    res.status(200).json({ message: 'Application status updated successfully', data: updatedMission });
+  } catch (error) {
+    console.error('Error updating application status:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
