@@ -57,7 +57,7 @@ const Carousel = ({
     const bgImageUrl = backgroundImage || "/api/placeholder/1920/1080";
 
     return (
-        <div id='carousel' className={`relative w-full h-full overflow-hidden rounded-2xl ${className}`}>
+        <div id="about" className={`relative w-full h-full overflow-hidden rounded-2xl ${className}`}>
             <div className="absolute inset-0 z-0">
                 <img src={bgImageUrl} alt="Background" className="w-full h-full object-cover blur-xs" />
                 <div className="absolute inset-0 bg-black/40" />

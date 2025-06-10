@@ -1,7 +1,7 @@
 const Freelancer = require('../models/freelancer.model');
 const { Client } = require('@elastic/elasticsearch');
 const esClient = new Client({ node: 'http://localhost:9200' });
-
+const mongoose = require('mongoose');
 // Test Elasticsearch connection
 const testESConnection = async () => {
   try {
@@ -304,7 +304,7 @@ exports.reindexAllFreelancers = async () => {
   }
 };
 
-const mongoose = require('mongoose');
+
 
 
 

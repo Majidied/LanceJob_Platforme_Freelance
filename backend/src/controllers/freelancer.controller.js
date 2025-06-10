@@ -244,3 +244,21 @@ exports.isCompleteProfile = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.searchFreelancers = async (req, res, next) => {
+  try {
+    const searchText = req.query.q || '';
+    if (!searchText) {
+      return res.status(400).json({ message: 'Search query is required' });
+    }
+
+    console.log('Search Query:', searchText); // Debugging log
+    const freelancers = await freelancerService.searchFreelancers(searchText);
+    console.log('Search Results:', freelancers); // Debugging log
+
+    res.status(200).json({ data: freelancers });
+  } catch (error) {
+    console.error('Search Freelancer Error:', error); // Debugging log
+    next(error);
+  }
+};

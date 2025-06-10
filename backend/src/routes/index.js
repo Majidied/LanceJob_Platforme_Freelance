@@ -11,8 +11,8 @@ const router = express.Router();
 
 router.use('/users', authenticateJWT, userRoutes);
 router.use('/auth', authRoutes);
-router.use('/mission', authenticateJWT, verificationUser, missionRoutes);
-router.use('/freelancer', authenticateJWT, verificationUser, freelancerRoutes);
+router.use('/mission', missionRoutes);
+router.use('/freelancer', freelancerRoutes);
 router.use('/client', authenticateJWT, verificationUser, clientRoutes);
 // Health check endpoint
 router.get('/health', (req, res) => {

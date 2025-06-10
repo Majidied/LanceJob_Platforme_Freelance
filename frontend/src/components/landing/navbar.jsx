@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import logo from "../../assets/LanceLogo.png";
-import { Link } from 'react-router-dom';
 
-const Navbar = () => {
+const Navbar = ({ hideLinks = [] }) => { // <-- add prop
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeLink, setActiveLink] = useState("home");
   const location = useLocation();
@@ -30,39 +29,45 @@ const Navbar = () => {
 
           {/* Desktop Navigation - Hidden on mobile */}
           <ul className="hidden md:flex ml-10 space-x-6 text-gray-600 font-medium">
-            <li>
-              <Link
-                to="/"
-                onClick={() => setActiveLink("home")}
-                className={`cursor-pointer ${activeLink === "home"
-                  ? "text-[#5A8C8E] underline underline-offset-4 decoration-[#5A8C8E]"
-                  : "text-gray-400 hover:text-[#5A8C8E]"}`}
-              >
-                Home
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/"
-                onClick={() => setActiveLink("about us")}
-                className={`cursor-pointer ${activeLink === "about us"
-                  ? "text-[#5A8C8E] underline underline-offset-4 decoration-[#5A8C8E]"
-                  : "text-gray-400 hover:text-[#5A8C8E]"}`}
-              >
-                About us
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/"
-                onClick={() => setActiveLink("services")}
-                className={`cursor-pointer ${activeLink === "services"
-                  ? "text-[#5A8C8E] underline underline-offset-4 decoration-[#5A8C8E]"
-                  : "text-gray-400 hover:text-[#5A8C8E]"}`}
-              >
-                Services
-              </Link>
-            </li>
+            {!hideLinks.includes('home') && (
+              <li>
+                <Link
+                  to="/"
+                  onClick={() => setActiveLink("home")}
+                  className={`cursor-pointer ${activeLink === "home"
+                    ? "text-[#5A8C8E] underline underline-offset-4 decoration-[#5A8C8E]"
+                    : "text-gray-400 hover:text-[#5A8C8E]"}`}
+                >
+                  Home
+                </Link>
+              </li>
+            )}
+            {!hideLinks.includes('about') && (
+              <li>
+                <Link
+                  to="/#about"
+                  onClick={() => setActiveLink("about us")}
+                  className={`cursor-pointer ${activeLink === "about us"
+                    ? "text-[#5A8C8E] underline underline-offset-4 decoration-[#5A8C8E]"
+                    : "text-gray-400 hover:text-[#5A8C8E]"}`}
+                >
+                  About us
+                </Link>
+              </li>
+            )}
+            {!hideLinks.includes('services') && (
+              <li>
+                <Link
+                  to="/#service"
+                  onClick={() => setActiveLink("services")}
+                  className={`cursor-pointer ${activeLink === "services"
+                    ? "text-[#5A8C8E] underline underline-offset-4 decoration-[#5A8C8E]"
+                    : "text-gray-400 hover:text-[#5A8C8E]"}`}
+                >
+                  Services
+                </Link>
+              </li>
+            )}
           </ul>
         </div>
 
@@ -117,48 +122,54 @@ const Navbar = () => {
       {/* Mobile Menu */}
       <div className={`md:hidden bg-white ${isMenuOpen ? 'block' : 'hidden'} py-2 px-4 shadow-md`}>
         <ul className="space-y-3 pb-3">
-          <li>
-            <Link
-              to="/"
-              onClick={() => {
-                setActiveLink("home");
-                setIsMenuOpen(false);
-              }}
-              className={`cursor-pointer ${activeLink === "home"
-                ? "text-[#5A8C8E] underline-offset-4 decoration-[#5A8C8E]"
-                : "text-gray-400 hover:text-[#5A8C8E]"}`}
-            >
-              Home
-            </Link>
-          </li>
-          <li>
-            <Link
-              to="/about"
-              onClick={() => {
-                setActiveLink("about us");
-                setIsMenuOpen(false);
-              }}
-              className={`cursor-pointer ${activeLink === "about us"
-                ? "text-[#5A8C8E] underline-offset-4 decoration-[#5A8C8E]"
-                : "text-gray-400 hover:text-[#5A8C8E]"}`}
-            >
-              About us
-            </Link>
-          </li>
-          <li>
-            <Link
-              to="/services"
-              onClick={() => {
-                setActiveLink("services");
-                setIsMenuOpen(false);
-              }}
-              className={`cursor-pointer ${activeLink === "services"
-                ? "text-[#5A8C8E] underline-offset-4 decoration-[#5A8C8E]"
-                : "text-gray-400 hover:text-[#5A8C8E]"}`}
-            >
-              Services
-            </Link>
-          </li>
+          {!hideLinks.includes('home') && (
+            <li>
+              <Link
+                to="/"
+                onClick={() => {
+                  setActiveLink("home");
+                  setIsMenuOpen(false);
+                }}
+                className={`cursor-pointer ${activeLink === "home"
+                  ? "text-[#5A8C8E] underline-offset-4 decoration-[#5A8C8E]"
+                  : "text-gray-400 hover:text-[#5A8C8E]"}`}
+              >
+                Home
+              </Link>
+            </li>
+          )}
+          {!hideLinks.includes('about') && (
+            <li>
+              <Link
+                to="/#about"
+                onClick={() => {
+                  setActiveLink("about us");
+                  setIsMenuOpen(false);
+                }}
+                className={`cursor-pointer ${activeLink === "about us"
+                  ? "text-[#5A8C8E] underline-offset-4 decoration-[#5A8C8E]"
+                  : "text-gray-400 hover:text-[#5A8C8E]"}`}
+              >
+                About us
+              </Link>
+            </li>
+          )}
+          {!hideLinks.includes('services') && (
+            <li>
+              <Link
+                to="/#service"
+                onClick={() => {
+                  setActiveLink("services");
+                  setIsMenuOpen(false);
+                }}
+                className={`cursor-pointer ${activeLink === "services"
+                  ? "text-[#5A8C8E] underline-offset-4 decoration-[#5A8C8E]"
+                  : "text-gray-400 hover:text-[#5A8C8E]"}`}
+              >
+                Services
+              </Link>
+            </li>
+          )}
         </ul>
       </div>
     </nav>

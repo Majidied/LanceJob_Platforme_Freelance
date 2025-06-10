@@ -1,7 +1,7 @@
 const Mission = require('../models/mission.model');
 const { Client } = require('@elastic/elasticsearch');
 const esClient = new Client({ node: 'http://localhost:9200' });
-const Client = require('../models/client.model');
+const ClientModel = require('../models/client.model');
 const Freelancer = require('../models/freelancer.model');
 
 exports.getAllMissions = async () => {
@@ -22,8 +22,8 @@ exports.createMission = async (missionData) => {
   } catch (error) {
     console.error('Elasticsearch indexing error (createMission):', error);
   }
-  await Client.findByIdAndUpdate(
-    missionData.client,
+  await ClientModel.findByIdAndUpdate(
+    missionData.clientModel,
     { $push: { postedMissions: savedMission._id } },
     { new: true }
   );
@@ -113,7 +113,7 @@ exports.indexMission = async (mission) => {
         tags: mission.tags,
         budget: mission.budget,
         deadline: mission.deadline,
-        client: mission.client.toString(),
+        clientModel: mission.clientModel.toString(),
         status: mission.status,
         type: mission.type,
         experience: mission.experience
@@ -147,7 +147,7 @@ exports.updateMissionIndex = async (mission) => {
           tags: mission.tags,
           budget: mission.budget,
           deadline: mission.deadline,
-          client: mission.client.toString(),
+          clientModel: mission.clientModel.toString(),
           status: mission.status,
           type: mission.type,
           experience: mission.experience
