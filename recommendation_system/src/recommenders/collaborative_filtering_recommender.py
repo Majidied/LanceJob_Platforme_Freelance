@@ -6,7 +6,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.decomposition import TruncatedSVD
 from scipy.sparse import csr_matrix
 from datetime import datetime, timedelta
-from config import Config
+from ..core.config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +28,8 @@ class CollaborativeFilteringRecommender:
             'click': 1.5,
             'detailed_view': 2.0,
             'save': 3.0,
-            'application': 5.0,
-            'message': 3.5,
+            'apply': 5.0,  # Changed from 'application' to 'apply'
+            'contact': 3.5,  # Changed from 'message' to 'contact'
             'hire': 10.0
         }
         
@@ -46,18 +46,26 @@ class CollaborativeFilteringRecommender:
     def _build_interaction_matrix(self, interactions: List[Dict]) -> Tuple[np.ndarray, Dict, Dict]:
         """Build user-item interaction matrix from interaction data"""
         try:
+            logger.info(f"Building interaction matrix from {len(interactions)} interactions")
+            
             # Process interactions to get user-item scores
             user_item_scores = {}
+            processed_count = 0
+            skipped_count = 0
             
             for interaction in interactions:
-                freelancer_id = interaction.get('freelancer_id')
-                mission_id = interaction.get('mission_id')
-                interaction_type = interaction.get('type')
-                duration = interaction.get('duration')
+                freelancer_id = str(interaction.get('freelancer_id', ''))
+                mission_id = str(interaction.get('mission_id', ''))
+                interaction_type = interaction.get('interaction_type')
+                metadata = interaction.get('metadata', {})
+                duration = metadata.get('duration') if metadata else None
                 timestamp = interaction.get('timestamp')
                 
                 if not all([freelancer_id, mission_id, interaction_type]):
+                    skipped_count += 1
                     continue
+                
+                processed_count += 1
                 
                 # Calculate score for this interaction
                 score = self._assign_interaction_score(interaction_type, duration)
@@ -66,8 +74,11 @@ class CollaborativeFilteringRecommender:
                 if timestamp:
                     if isinstance(timestamp, str):
                         timestamp = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                    elif hasattr(timestamp, 'replace'):
+                        # Ensure timezone is removed for datetime objects
+                        timestamp = timestamp.replace(tzinfo=None)
                     
-                    days_old = (datetime.now() - timestamp.replace(tzinfo=None)).days
+                    days_old = (datetime.now() - timestamp).days
                     time_decay = np.exp(-days_old / 30.0)  # Decay with 30-day half-life
                     score *= time_decay
                 
@@ -78,6 +89,9 @@ class CollaborativeFilteringRecommender:
                 else:
                     user_item_scores[key] = score
             
+            logger.info(f"Processed {processed_count} interactions, skipped {skipped_count}")
+            logger.info(f"Generated {len(user_item_scores)} unique user-item pairs")
+            
             # Filter users and items with minimum interactions
             user_interaction_counts = {}
             item_interaction_counts = {}
@@ -86,11 +100,17 @@ class CollaborativeFilteringRecommender:
                 user_interaction_counts[user_id] = user_interaction_counts.get(user_id, 0) + 1
                 item_interaction_counts[item_id] = item_interaction_counts.get(item_id, 0) + 1
             
+            logger.info(f"User interaction counts: {dict(sorted(user_interaction_counts.items()))}")
+            logger.info(f"Item interaction counts: {dict(sorted(item_interaction_counts.items()))}")
+            
             # Keep only users and items with sufficient interactions
             valid_users = {user_id for user_id, count in user_interaction_counts.items() 
                           if count >= self.min_interactions}
             valid_items = {item_id for item_id, count in item_interaction_counts.items() 
                           if count >= 2}  # Minimum 2 interactions for items
+            
+            logger.info(f"Valid users (>= {self.min_interactions} interactions): {len(valid_users)}")
+            logger.info(f"Valid items (>= 2 interactions): {len(valid_items)}")
             
             # Filter interaction matrix
             filtered_scores = {
@@ -98,6 +118,8 @@ class CollaborativeFilteringRecommender:
                 for (user_id, item_id), score in user_item_scores.items()
                 if user_id in valid_users and item_id in valid_items
             }
+            
+            logger.info(f"Filtered scores: {len(filtered_scores)}")
             
             if not filtered_scores:
                 logger.warning("No sufficient interactions for collaborative filtering")
@@ -325,3 +347,48 @@ class CollaborativeFilteringRecommender:
         return (self.user_item_matrix is not None and 
                 len(self.user_mapping) > 0 and 
                 len(self.item_mapping) > 0)
+    
+    def get_recommendations(self, freelancer_id: str, limit: int = 20) -> List[Dict]:
+        """Get recommendations for a freelancer by ID - wrapper for recommend_items"""
+        from ..core.database_manager import DatabaseManager
+        
+        try:
+            # Get database manager
+            db_manager = DatabaseManager()
+            
+            # Get available missions
+            missions = db_manager.get_available_missions()
+            if not missions:
+                logger.warning("No available missions found")
+                return []
+            
+            # Get candidate mission IDs
+            candidate_items = [str(mission['_id']) for mission in missions]
+            
+            # Get recommendations using the existing method
+            item_scores = self.recommend_items(freelancer_id, candidate_items, limit)
+            
+            # Convert to detailed recommendations
+            recommendations = []
+            mission_dict = {str(mission['_id']): mission for mission in missions}
+            
+            for item_id, score in item_scores:
+                if item_id in mission_dict:
+                    mission = mission_dict[item_id]
+                    recommendations.append({
+                        'mission_id': item_id,
+                        'mission_title': mission.get('title', 'N/A'),
+                        'score': score,
+                        'explanation': f'Collaborative filtering score: {score:.3f}',
+                        'tags': mission.get('tags', []),
+                        'budget': mission.get('budget', 0),
+                        'deadline': mission.get('deadline', ''),
+                        'description': mission.get('description', '')
+                    })
+            
+            logger.info(f"Generated {len(recommendations)} collaborative filtering recommendations for freelancer {freelancer_id}")
+            return recommendations
+            
+        except Exception as e:
+            logger.error(f"Error generating collaborative filtering recommendations for {freelancer_id}: {e}")
+            return []

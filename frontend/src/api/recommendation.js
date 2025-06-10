@@ -24,7 +24,7 @@ class RecommendationService {
       if (options.missionType) params.append('missionType', options.missionType);
       
       const queryString = params.toString();
-      const url = queryString ? `/recommendations/me?${queryString}` : '/recommendations/me';
+      const url = queryString ? `/recommendations/${options.userID}?${queryString}` : '/recommendations/me';
       
       const response = await api.get(url);
       return response.data;

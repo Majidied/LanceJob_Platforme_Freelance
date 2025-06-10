@@ -27,7 +27,7 @@ EXPOSE 2511
 
 # Set environment variables
 ENV PYTHONPATH=/app
-ENV FLASK_APP=api_server.py
+ENV FLASK_APP=main.py
 ENV FLASK_ENV=production
 
 # Health check
@@ -35,4 +35,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:2511/api/health || exit 1
 
 # Run the application
-CMD ["gunicorn", "--bind", "0.0.0.0:2511", "--workers", "4", "--timeout", "120", "api_server:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:2511", "--workers", "4", "--timeout", "120", "main:application"]

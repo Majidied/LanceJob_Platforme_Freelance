@@ -195,7 +195,7 @@ case "$1" in
         fi
         
         # Start Recommendation API
-        start_service "Recommendation API" "source venv/bin/activate && python api_server.py" "$RECOMMENDATION_DIR" 2511
+        start_service "Recommendation API" "source venv/bin/activate && python src/api/api_server.py" "$RECOMMENDATION_DIR" 2511
         sleep 3
         
         # Start Backend API

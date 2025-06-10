@@ -16,15 +16,15 @@ import json
 import tempfile
 import shutil
 
-# Add the current directory to the Python path
+# Add the parent directory to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config import Config
-from database_manager import DatabaseManager
-from cache_manager import CacheManager
-from content_based_recommender import ContentBasedRecommender
-from collaborative_filtering_recommender import CollaborativeFilteringRecommender
-from hybrid_recommender import HybridRecommendationSystem
+from src.core.config import Config
+from src.core.database_manager import DatabaseManager
+from src.core.cache_manager import CacheManager
+from src.recommenders.content_based_recommender import ContentBasedRecommender
+from src.recommenders.collaborative_filtering_recommender import CollaborativeFilteringRecommender
+from src.recommenders.hybrid_recommender import HybridRecommendationSystem
 
 class TestConfig(unittest.TestCase):
     """Test cases for the Config class."""
@@ -71,14 +71,14 @@ class TestDatabaseManager(unittest.TestCase):
     """Test cases for the DatabaseManager class."""
     
     def setUp(self):
-        with patch('database_manager.MongoClient'):
+        with patch('src.core.database_manager.MongoClient'):
             self.db_manager = DatabaseManager()
     
     def test_database_manager_initialization(self):
         """Test that database manager initializes properly."""
         self.assertIsInstance(self.db_manager, DatabaseManager)
     
-    @patch('database_manager.MongoClient')
+    @patch('src.core.database_manager.MongoClient')
     def test_test_connection(self, mock_client):
         """Test database connection testing."""
         if hasattr(self.db_manager, 'test_connection'):
@@ -155,7 +155,7 @@ class TestCacheManager(unittest.TestCase):
     """Test cases for the CacheManager class."""
     
     def setUp(self):
-        with patch('cache_manager.redis.Redis'):
+        with patch('src.core.cache_manager.redis.Redis'):
             self.cache_manager = CacheManager()
     
     def test_cache_manager_initialization(self):
@@ -175,7 +175,7 @@ class TestCacheManager(unittest.TestCase):
         else:
             self.skipTest("_generate_key method not implemented")
     
-    @patch('cache_manager.redis.Redis')
+    @patch('src.core.cache_manager.redis.Redis')
     def test_cache_operations(self, mock_redis):
         """Test basic cache operations."""
         if hasattr(self.cache_manager, 'set') and hasattr(self.cache_manager, 'get'):
@@ -570,7 +570,7 @@ class TestErrorHandling(unittest.TestCase):
     
     def test_empty_database_scenarios(self):
         """Test behavior with empty database."""
-        with patch('database_manager.MongoClient'):
+        with patch('src.core.database_manager.MongoClient'):
             db_manager = DatabaseManager()
             
             # Mock empty results

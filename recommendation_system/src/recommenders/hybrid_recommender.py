@@ -2,11 +2,11 @@ import logging
 import numpy as np
 from typing import Dict, List, Tuple, Optional
 from datetime import datetime
-from config import Config
-from database_manager import DatabaseManager
-from cache_manager import CacheManager
-from content_based_recommender import ContentBasedRecommender
-from collaborative_filtering_recommender import CollaborativeFilteringRecommender
+from ..core.config import Config
+from ..core.database_manager import DatabaseManager
+from ..core.cache_manager import CacheManager
+from .content_based_recommender import ContentBasedRecommender
+from .collaborative_filtering_recommender import CollaborativeFilteringRecommender
 
 logger = logging.getLogger(__name__)
 

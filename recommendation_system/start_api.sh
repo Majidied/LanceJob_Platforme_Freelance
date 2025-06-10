@@ -1,14 +1,13 @@
 #!/bin/bash
 
-# LanceJob Recommendation System - Flask API Startup Script
-# This script starts the Flask API server for the recommendation system
+# LanceJob Recommendation System - API Startup Script
+# This script starts the API server for the recommendation system
 
 # Set default environment variables
-export FLASK_APP=api_server.py
 export FLASK_ENV=${FLASK_ENV:-production}
 export FLASK_DEBUG=${FLASK_DEBUG:-false}
-export FLASK_HOST=${FLASK_HOST:-127.0.0.1}
-export FLASK_PORT=${FLASK_PORT:-5000}
+export FLASK_HOST=${FLASK_HOST:-0.0.0.0}
+export FLASK_PORT=${FLASK_PORT:-2511}
 
 # Colors for output
 RED='\033[0;31m'
@@ -98,8 +97,8 @@ if [ "$FLASK_ENV" = "production" ]; then
         --preload \
         --access-logfile - \
         --error-logfile - \
-        api_server:app
+        main:application
 else
     echo -e "${GREEN}🚀 Starting with Flask Development Server${NC}"
-    exec python3 api_server.py
+    exec python3 main.py
 fi

@@ -3,7 +3,7 @@ import redis
 import json
 from typing import Dict, List, Any, Optional
 from datetime import datetime, timedelta
-from config import Config
+from .config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -220,32 +220,54 @@ class CacheManager:
             logger.error(f"Error invalidating all recommendations cache: {e}")
             return False
     
+    def set(self, key: str, data: Any, ttl: int = None) -> bool:
+        """Generic set method for caching any data"""
+        if not self.is_available():
+            return False
+            
+        try:
+            json_data = json.dumps(data)
+            if ttl:
+                return self.redis_client.setex(key, ttl, json_data)
+            else:
+                return self.redis_client.set(key, json_data)
+        except Exception as e:
+            logger.error(f"Error setting cache key '{key}': {e}")
+            return False
+    
+    def get(self, key: str) -> Optional[Any]:
+        """Generic get method for retrieving cached data"""
+        if not self.is_available():
+            return None
+            
+        try:
+            cached_data = self.redis_client.get(key)
+            if cached_data:
+                return json.loads(cached_data)
+            return None
+        except Exception as e:
+            logger.error(f"Error getting cache key '{key}': {e}")
+            return None
+
     def get_cache_stats(self) -> Dict:
         """Get cache statistics"""
         if not self.is_available():
-            return {"error": "Redis not available"}
+            return {"status": "unavailable"}
             
         try:
             info = self.redis_client.info()
-            
-            # Count keys by type
-            recommendation_keys = len(self.redis_client.keys(self._get_key("recommendations", "*")))
-            interaction_keys = len(self.redis_client.keys(self._get_key("interactions", "*")))
-            model_keys = len(self.redis_client.keys(self._get_key("model", "*")))
-            
             return {
-                "redis_version": info.get("redis_version"),
-                "used_memory_human": info.get("used_memory_human"),
-                "connected_clients": info.get("connected_clients"),
-                "total_keys": recommendation_keys + interaction_keys + model_keys,
-                "recommendation_keys": recommendation_keys,
-                "interaction_keys": interaction_keys,
-                "model_keys": model_keys
+                "status": "connected",
+                "used_memory": info.get("used_memory_human", "N/A"),
+                "connected_clients": info.get("connected_clients", 0),
+                "total_commands_processed": info.get("total_commands_processed", 0),
+                "keyspace_hits": info.get("keyspace_hits", 0),
+                "keyspace_misses": info.get("keyspace_misses", 0)
             }
         except Exception as e:
             logger.error(f"Error getting cache stats: {e}")
-            return {"error": str(e)}
-
+            return {"status": "error", "message": str(e)}
+    
     def clear_all(self) -> bool:
         """Clear all cache managed by this CacheManager (dangerous operation)"""
         if not self.is_available():

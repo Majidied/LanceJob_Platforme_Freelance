@@ -6,7 +6,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import StandardScaler
 from datetime import datetime, timedelta
-from config import Config
+from ..core.config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -264,3 +264,32 @@ class ContentBasedRecommender:
             }
         
         return importance
+    
+    def get_recommendations(self, freelancer_id: str, limit: int = 20, filters: Dict = None) -> List[Dict]:
+        """Get recommendations for a freelancer (wrapper for recommend_missions)"""
+        try:
+            from ..core.database_manager import DatabaseManager
+            
+            db_manager = DatabaseManager()
+            
+            # Get freelancer data
+            freelancer = db_manager.get_freelancer(freelancer_id)
+            if not freelancer:
+                logger.warning(f"Freelancer {freelancer_id} not found")
+                return []
+            
+            # Get available missions
+            missions = db_manager.get_available_missions(filters)
+            if not missions:
+                logger.info("No available missions found")
+                return []
+            
+            # Get recommendations using existing method
+            recommendations = self.recommend_missions(freelancer, missions, limit)
+            
+            logger.info(f"Generated {len(recommendations)} content-based recommendations for freelancer {freelancer_id}")
+            return recommendations
+            
+        except Exception as e:
+            logger.error(f"Error getting content-based recommendations: {str(e)}")
+            return []

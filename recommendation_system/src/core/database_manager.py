@@ -1,8 +1,9 @@
 import logging
 from pymongo import MongoClient
+from bson import ObjectId
 from typing import Dict, List, Any, Optional
 from datetime import datetime, timedelta
-from config import Config
+from .config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +13,7 @@ class DatabaseManager:
     def __init__(self):
         try:
             self.client = MongoClient(Config.MONGODB_URI)
-            self.db = self.client.lancejob
+            self.db = self.client.lancejob_db
             
             # Test connection
             self.client.admin.command('ping')
@@ -51,9 +52,23 @@ class DatabaseManager:
     def get_freelancer(self, freelancer_id: str) -> Optional[Dict]:
         """Get freelancer by ID"""
         try:
+            logger.info(f"Looking for freelancer with ID: {freelancer_id} (type: {type(freelancer_id)})")
+            
+            # Try both string and ObjectId formats
+            try:
+                from bson import ObjectId
+                query_id = ObjectId(freelancer_id)
+                logger.info(f"Converted to ObjectId: {query_id}")
+            except Exception as e:
+                # If not valid ObjectId, use as string
+                query_id = freelancer_id
+                logger.info(f"Using as string: {query_id}")
+                logger.error(f"ObjectId conversion failed: {e}")
+            
             freelancer = self.freelancers.find_one(
-                {"_id": freelancer_id, "role": "freelancer"},
+                {"_id": query_id, "role": "freelancer"},
                 {
+                    "name": 1,
                     "skills": 1,
                     "bio": 1,
                     "title": 1,
@@ -66,8 +81,11 @@ class DatabaseManager:
             )
             
             if freelancer:
+                logger.info(f"Found freelancer: {freelancer.get('name', 'Unknown')}")
                 freelancer['_id'] = str(freelancer['_id'])
                 return freelancer
+            else:
+                logger.warning(f"No freelancer found with ID: {query_id}")
             return None
         except Exception as e:
             logger.error(f"Error getting freelancer {freelancer_id}: {e}")
@@ -100,13 +118,17 @@ class DatabaseManager:
             logger.error(f"Error getting all freelancers: {e}")
             return []
     
-    def get_available_missions(self, exclude_applied: Optional[List[str]] = None) -> List[Dict]:
+    def get_available_missions(self, exclude_applied: Optional[List[str]] = None, filters: Optional[Dict] = None) -> List[Dict]:
         """Get all available missions (not assigned, published status)"""
         try:
-            # Build query
+            # Build query - handle both None and "None" string values for assignedTo
             query = {
                 "status": "published",
-                "assignedTo": None
+                "$or": [
+                    {"assignedTo": None},
+                    {"assignedTo": "None"},
+                    {"assignedTo": {"$exists": False}}
+                ]
             }
             
             # Exclude missions already applied to
@@ -202,9 +224,9 @@ class DatabaseManager:
                 {
                     "freelancer_id": 1,
                     "mission_id": 1,
-                    "type": 1,
+                    "interaction_type": 1,  # Fixed: was "type"
                     "timestamp": 1,
-                    "score": 1
+                    "metadata": 1  # Added metadata field
                 }
             ))
             

@@ -13,20 +13,24 @@ from datetime import datetime
 import os
 import sys
 
-# Add the current directory to the Python path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# Add the parent directory to the Python path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from config import Config
-from database_manager import DatabaseManager
-from cache_manager import CacheManager
-from hybrid_recommender import HybridRecommendationSystem
+from src.core.config import Config
+from src.core.database_manager import DatabaseManager
+from src.core.cache_manager import CacheManager
+from src.recommenders.hybrid_recommender import HybridRecommendationSystem
 
 # Configure logging
+import os
+log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'logs')
+os.makedirs(log_dir, exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('api_server.log'),
+        logging.FileHandler(os.path.join(log_dir, 'api_server.log')),
         logging.StreamHandler()
     ]
 )
@@ -193,6 +197,76 @@ class RecommendationAPI:
             return jsonify({
                 'error': 'Internal server error',
                 'message': 'Failed to track interaction'
+            }), 500
+
+    @staticmethod
+    @app.route('/interactions/batch', methods=['POST'])
+    def track_batch_interactions():
+        """Track multiple interactions in batch"""
+        try:
+            data = request.get_json()
+            if not data or 'interactions' not in data:
+                return jsonify({
+                    'error': 'Missing interactions data',
+                    'message': 'Request must contain interactions array'
+                }), 400
+            
+            interactions = data['interactions']
+            if not isinstance(interactions, list) or len(interactions) == 0:
+                return jsonify({
+                    'error': 'Invalid interactions data', 
+                    'message': 'interactions must be a non-empty array'
+                }), 400
+            
+            # Track each interaction
+            tracked_count = 0
+            failed_count = 0
+            
+            for interaction in interactions:
+                try:
+                    freelancer_id = interaction.get('freelancer_id')
+                    mission_id = interaction.get('mission_id')
+                    interaction_type = interaction.get('interaction_type')
+                    metadata = interaction.get('metadata', {})
+                    
+                    if not all([freelancer_id, mission_id, interaction_type]):
+                        failed_count += 1
+                        continue
+                    
+                    success = db_manager.track_interaction(
+                        freelancer_id=freelancer_id,
+                        mission_id=mission_id,
+                        interaction_type=interaction_type,
+                        metadata=metadata
+                    )
+                    
+                    if success:
+                        tracked_count += 1
+                        # Invalidate cache for this freelancer
+                        cache_key = f"recommendations:{freelancer_id}"
+                        cache_manager.delete(cache_key)
+                    else:
+                        failed_count += 1
+                        
+                except Exception as e:
+                    logger.error(f"Error tracking individual interaction: {str(e)}")
+                    failed_count += 1
+            
+            return jsonify({
+                'success': True,
+                'message': f'Batch tracking completed',
+                'tracked_count': tracked_count,
+                'failed_count': failed_count,
+                'total_count': len(interactions),
+                'timestamp': datetime.now().isoformat()
+            }), 200
+            
+        except Exception as e:
+            logger.error(f"Error in batch tracking: {str(e)}")
+            logger.error(traceback.format_exc())
+            return jsonify({
+                'error': 'Internal server error',
+                'message': 'Failed to track batch interactions'
             }), 500
 
     @staticmethod

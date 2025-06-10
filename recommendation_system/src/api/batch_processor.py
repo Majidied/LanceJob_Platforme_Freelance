@@ -14,20 +14,21 @@ import logging
 import traceback
 from datetime import datetime, timedelta
 
-# Add the current directory to the Python path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-from config import Config
-from database_manager import DatabaseManager
-from cache_manager import CacheManager
-from hybrid_recommender import HybridRecommendationSystem
+from src.core.config import Config
+from src.core.database_manager import DatabaseManager
+from src.core.cache_manager import CacheManager
+from src.recommenders.hybrid_recommender import HybridRecommendationSystem
 
 # Configure logging
+import os
+log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'logs')
+os.makedirs(log_dir, exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('batch_processor.log'),
+        logging.FileHandler(os.path.join(log_dir, 'batch_processor.log')),
         logging.StreamHandler()
     ]
 )
@@ -38,8 +39,8 @@ class BatchProcessor:
     
     def __init__(self):
         self.config = Config()
-        self.db_manager = DatabaseManager(self.config)
-        self.cache_manager = CacheManager(self.config)
+        self.db_manager = DatabaseManager()
+        self.cache_manager = CacheManager()
         self.recommender = HybridRecommendationSystem()
         
     def retrain_models(self):

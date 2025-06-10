@@ -9,9 +9,6 @@ const recommendationController = require('../controllers/recommendation.controll
 
 const router = express.Router();
 
-// Get recommendations for a freelancer
-router.get('/:freelancerId', recommendationController.getRecommendations);
-
 // Track user interaction with a recommendation
 router.post('/interactions', recommendationController.trackInteraction);
 
@@ -30,5 +27,8 @@ router.get('/health', recommendationController.healthCheck);
 // Admin routes - these should be protected with admin authentication middleware
 router.post('/retrain', recommendationController.retrainModels);
 router.get('/stats', recommendationController.getSystemStats);
+
+// Get recommendations for a freelancer
+router.get('/:freelancerId', recommendationController.getRecommendations);
 
 module.exports = router;
