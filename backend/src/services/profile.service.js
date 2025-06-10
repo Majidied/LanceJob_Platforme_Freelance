@@ -18,14 +18,15 @@ exports.handleProfileImageUpload = async (userId, file, req) => {
   }
 
   // Supprimer l'ancienne image si elle existe
-  if (user.profileImage) {
-    const oldImagePath = this.getProfileImagePath(user.profileImage);
-    console.log(`Suppression de l'ancienne image: ${oldImagePath}`);
-    await this.deleteFileIfExists(oldImagePath);
-  }
+  //if (user.profileImage) {
+  //  const oldImagePath = this.getProfileImagePath(user.profileImage);
+  //  console.log(`Suppression de l'ancienne image: ${oldImagePath}`);
+  //  await this.deleteFileIfExists(oldImagePath);
+  //}
 
   // Mettre à jour l'utilisateur avec le nouveau nom de fichier
   user.profileImage = file.filename;
+
   await user.save();
 
   return {
@@ -33,6 +34,7 @@ exports.handleProfileImageUpload = async (userId, file, req) => {
     imageUrl: `${req.protocol}://${req.get('host')}/uploads/profiles/${file.filename}`,
     timestamp: Date.now()
   };
+
 };
 
 exports.handleProfileImageDeletion = async (userId) => {
@@ -97,7 +99,7 @@ exports.deleteFileIfExists = (filePath) => {
 exports.serveProfileImage = (filename, res) => {
   return new Promise((resolve, reject) => {
     const imagePath = this.getProfileImagePath(filename);
-    
+    console.log(`Chemin de l'image: ${imagePath}`);
     fs.access(imagePath, fs.constants.F_OK, (err) => {
       if (err) {
         return reject(new Error('Image non trouvée'));

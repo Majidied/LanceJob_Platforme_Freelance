@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { User, X, Star, MapPin, Phone, Mail, ArrowRight } from 'lucide-react';
 import { VscVerifiedFilled } from "react-icons/vsc";
-import { fetchFreelancers } from '../../../api/freelancer';
+import { fetchFreelancers,getFreelancer } from '../../../api/freelancer';
+import {  getImageUrl } from '../../../api/image';
+
 
 const Home = () => {
   const [activeTab, setActiveTab] = useState('bestMatches');
   const [talents, setTalents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [avatarUrls, setAvatarUrls] = useState({});
   const [selectedFreelancer, setSelectedFreelancer] = useState(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
 
@@ -48,7 +51,8 @@ const Home = () => {
           address: getFirstValue(freelancer.address, 'Adresse non disponible'),
           rate: `$${getFirstValue(freelancer.earned, 0)}/hr`,
           applications: freelancer.appliedMissions || [],
-          history: freelancer.history || []
+          history: freelancer.history || [],
+          profileImage: freelancer.profileImage || null,
         };
       });
 
@@ -61,10 +65,33 @@ const Home = () => {
       setLoading(false);
     }
   };
+   const loadAvatars = async () => {
+    const newAvatarUrls = {};
+    for (const talent of talents) {
+      try {
+        const response = await getFreelancer(talent.id);
+        const data = response.data || response;
+        if (data.profileImage) {
+          newAvatarUrls[talent.id] = getImageUrl(data.profileImage);
+        } else {
+          newAvatarUrls[talent.id] = `https://ui-avatars.com/api/?name=${encodeURIComponent(talent.name)}&background=3b82f6&color=fff&size=200`;
+        }
+      } catch (error) {
+        console.error("Error loading avatar for talent", talent.id, error);
+        newAvatarUrls[talent.id] = `https://ui-avatars.com/api/?name=${encodeURIComponent(talent.name)}&background=3b82f6&color=fff&size=200`;
+      }
+    }
+    setAvatarUrls(newAvatarUrls);
+  };
 
   useEffect(() => {
     loadFreelancers();
   }, []);
+   useEffect(() => {
+    if (talents.length > 0) {
+      loadAvatars();
+    }
+  }, [talents]);
 
   const handleFreelancerClick = (freelancer) => {
     setSelectedFreelancer(freelancer);
@@ -153,7 +180,15 @@ const Home = () => {
                     <div className="mr-4">
                       <div className="relative">
                         <div className="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full">
-                          <User size={32} className="text-blue-500" />
+                          {/*<User size={32} className="text-blue-500" />*/}
+                           <img 
+                              src={avatarUrls[talent.id] || `https://ui-avatars.com/api/?name=${encodeURIComponent(talent.name)}&background=3b82f6&color=fff&size=200`}
+                              alt="Profile" 
+                              className="object-cover w-full h-full border-2 border-blue-500 rounded-full"
+                              onError={(e) => {
+                                e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(talent.name)}&background=3b82f6&color=fff&size=200`;
+                              }}
+                            />
                         </div>
                         <div className="absolute w-6 h-6 bg-green-500 border-2 border-white rounded-full -bottom-1 -right-1"></div>
                       </div>
@@ -236,7 +271,14 @@ const Home = () => {
               <div className="text-center">
                 <div className="relative w-20 h-20 mx-auto mb-4">
                   <div className="flex items-center justify-center w-full h-full bg-blue-100 rounded-full">
-                    <User size={40} className="text-blue-500" />
+                    <img 
+                              src={avatarUrls[selectedFreelancer.id] || `https://ui-avatars.com/api/?name=${encodeURIComponent(talent.name)}&background=3b82f6&color=fff&size=200`}
+                              alt="Profile" 
+                              className="object-cover w-full h-full border-2 border-blue-500 rounded-full"
+                              onError={(e) => {
+                                e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(talent.name)}&background=3b82f6&color=fff&size=200`;
+                              }}
+                            />
                   </div>
                   <div className="absolute w-6 h-6 bg-green-500 border-2 border-white rounded-full -bottom-1 -right-1"></div>
                 </div>

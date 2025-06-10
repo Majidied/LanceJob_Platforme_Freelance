@@ -3,20 +3,24 @@ const User = require('./user.model');
 
 const freelancerSchema = new mongoose.Schema({
   phone: {
-    type: String
+    type: String,
+    default: null
   },
   rating: {
     type: Number,
     default: 0
   },
   bio: {
-    type: String
+    type: String,
+    default: null
   },
   skills: [{
-    type: String
+    type: String,
+    default: null
   }],
   title: {
-    type: String
+    type: String,
+    default: null
   },
   earned: {
     type: Number,
@@ -27,7 +31,8 @@ const freelancerSchema = new mongoose.Schema({
     default: 0
   },
   address: {
-    type: String
+    type: String,
+    default: null
   },
   history: [{
     type: mongoose.Schema.Types.ObjectId,

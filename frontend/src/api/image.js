@@ -36,6 +36,6 @@ export const getImageUrl = (filename) => {
   
   // Ajout d'un timestamp pour éviter le cache
   const timestamp = Date.now();
-  return `${api.defaults.baseURL}/upload/profile-image/${filename}?t=${timestamp}`;
+  return `${api.defaults.baseURL}/upload/profile-image/${filename}?${Date.now()}`;
 };
 
