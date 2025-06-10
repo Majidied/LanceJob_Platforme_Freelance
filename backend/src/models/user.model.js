@@ -18,7 +18,7 @@ const userSchema = new mongoose.Schema({
     required: true,
   },
   profileImage: {
-    type: String, // URL ou chemin vers l'image
+    type: String, 
     default: null
   },
   role: {

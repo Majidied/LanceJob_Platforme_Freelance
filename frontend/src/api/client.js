@@ -14,3 +14,8 @@ export const updateClient = async (id,updatedData) => {
   const response = await api.put(`/client/${id}`,updatedData);
   return response.data;
 };
+
+export const updateImage = async (id,updatedData) => {
+  const response = await api.post(`/upload`);
+  return response.data;
+};
