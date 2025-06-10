@@ -1,9 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { User, X, Star, MapPin, Phone, Mail, ArrowRight } from 'lucide-react';
 import { VscVerifiedFilled } from "react-icons/vsc";
+import { useLocation } from "react-router-dom";
 import { fetchFreelancers } from '../../../api/freelancer';
+import SearchJob from '../../../components/landing/job';
+import SearchTalent from '../../../components/landing/freelancer';
+import useSearch from '../../../hooks/usesearch';
 
 const Home = () => {
+  const location = useLocation();
+  
+  // Existing state
   const [activeTab, setActiveTab] = useState('bestMatches');
   const [talents, setTalents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,10 +18,61 @@ const Home = () => {
   const [selectedFreelancer, setSelectedFreelancer] = useState(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
 
+  // Search state (only for results display)
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchSelected, setSearchSelected] = useState('Talents');
+  const [isSearchActive, setIsSearchActive] = useState(false);
+
   const tabs = [
     { id: 'bestMatches', name: 'Best Matches' },
     { id: 'mostRecent', name: 'Most Recent' }
   ];
+
+  // Search functionality
+  const searchType = searchSelected === 'Jobs' ? 'jobs' : 'freelancers';
+  const { freelancers, jobs: searchJobs, isLoading, isLoadingJobs } = useSearch(searchQuery, searchType);
+
+  // Read query parameters from URL on initial load
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const q = params.get('q') || '';
+    const type = params.get('type') || 'freelancers';
+
+    if (q.trim()) {
+      setSearchQuery(q);
+      setIsSearchActive(true);
+      setSearchSelected(type === 'jobs' ? 'Jobs' : 'Talents');
+    } else {
+      // Clear search when no query parameters
+      setSearchQuery('');
+      setIsSearchActive(false);
+      setSearchSelected('Talents');
+    }
+  }, [location.search]);
+
+  // ✅ Mémoriser les talents triés selon l'onglet actif (pour la vue normale)
+  const sortedTalents = useMemo(() => {
+    if (!talents || talents.length === 0) return [];
+    
+    // Créer une copie pour éviter de muter l'état original
+    const talentsCopy = [...talents];
+    
+    if (activeTab === 'mostRecent') {
+      // Trier par date de création (plus récent en premier)
+      return talentsCopy.sort((a, b) => {
+        const dateA = new Date(a.createdAt || a.updatedAt || 0);
+        const dateB = new Date(b.createdAt || b.updatedAt || 0);
+        return dateB - dateA; // Tri décroissant (plus récent en premier)
+      });
+    } else {
+      // Pour 'bestMatches', trier par rating ou success rate
+      return talentsCopy.sort((a, b) => {
+        const scoreA = (parseFloat(a.rating || 0) * 0.6) + (parseFloat(a.success || 0) * 0.4);
+        const scoreB = (parseFloat(b.rating || 0) * 0.6) + (parseFloat(b.success || 0) * 0.4);
+        return scoreB - scoreA;
+      });
+    }
+  }, [talents, activeTab]);
 
   const loadFreelancers = async () => {
     try {
@@ -48,7 +106,9 @@ const Home = () => {
           address: getFirstValue(freelancer.address, 'Adresse non disponible'),
           rate: `$${getFirstValue(freelancer.earned, 0)}/hr`,
           applications: freelancer.appliedMissions || [],
-          history: freelancer.history || []
+          history: freelancer.history || [],
+          createdAt: freelancer.createdAt,
+          updatedAt: freelancer.updatedAt
         };
       });
 
@@ -63,8 +123,11 @@ const Home = () => {
   };
 
   useEffect(() => {
-    loadFreelancers();
-  }, []);
+    // Only load freelancers if we're not in search mode
+    if (!isSearchActive) {
+      loadFreelancers();
+    }
+  }, [isSearchActive]);
 
   const handleFreelancerClick = (freelancer) => {
     setSelectedFreelancer(freelancer);
@@ -78,7 +141,8 @@ const Home = () => {
     }, 300); // Attendre la fin de l'animation
   };
 
-  if (loading) {
+  // Si chargement en cours (pour la vue normale)
+  if (!isSearchActive && loading) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
@@ -89,7 +153,8 @@ const Home = () => {
     );
   }
 
-  if (error) {
+  // Si erreur (pour la vue normale)
+  if (!isSearchActive && error) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
@@ -107,111 +172,173 @@ const Home = () => {
 
   return (
     <div className="relative flex flex-col h-full">
-
-
-      {/* Liste principale */}
-      <div className="flex flex-col h-full">
-        {/* Tabs */}
-        <div className="m-2">
-          <div className="flex">
-            {tabs.map(tab => (
-              <button
-                key={tab.id}
-                className={`py-3 px-16 w-1/2 text-center ${
-                  activeTab === tab.id 
-                    ? 'text-[#518394] border-b-2 border-[#518394] font-medium' 
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-                onClick={() => setActiveTab(tab.id)}
-              >
-                {tab.name}
-              </button>
-            ))}
-          </div>
-        </div>
-        
-        {/* Talent List */}
-        <div className="flex-1 p-4 overflow-auto">
-          {talents.length === 0 ? (
-            <div className="py-8 text-center">
-              <p className="text-gray-600 dark:text-gray-400">Aucun freelancer trouvé</p>
+      {/* Search Results or Normal View */}
+      {isSearchActive ? (
+        <div className="flex-1">
+          {/* Search Loading */}
+          {(isLoading || isLoadingJobs) && (
+            <div className="flex justify-center items-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#518394]"></div>
+              <span className="ml-2 text-gray-600 dark:text-gray-300">
+                Searching {searchSelected.toLowerCase()}...
+              </span>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-4">
-              {talents.map(talent => (
-                <div 
-                  key={talent.id} 
-                  className={`p-4 bg-white rounded-lg shadow dark:!bg-navy-800 border cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02] ${
-                    selectedFreelancer?.id === talent.id 
-                      ? 'border-[#518394] bg-blue-50 dark:bg-blue-900/20' 
-                      : 'border-[#4242425a] hover:border-[#518394]'
+          )}
+
+          {/* Search Results */}
+          {!isLoading && !isLoadingJobs && (
+            <div className="p-4">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
+                  Search Results for "{searchQuery}"
+                </h2>
+                <span className="text-sm text-gray-500">
+                  {searchSelected === 'Jobs' 
+                    ? `${Array.isArray(searchJobs) ? searchJobs.length : 0} jobs found`
+                    : `${Array.isArray(freelancers) ? freelancers.length : 0} talents found`
+                  }
+                </span>
+              </div>
+              {searchSelected === 'Jobs' ? (
+                <SearchJob jobs={Array.isArray(searchJobs) ? searchJobs : []} search={searchQuery} />
+              ) : (
+                <SearchTalent talents={Array.isArray(freelancers) ? freelancers : []} search={searchQuery} />
+              )}
+            </div>
+          )}
+        </div>
+      ) : (
+        /* Normal Freelancer Listing View */
+        <div className="flex flex-col h-full">
+          {/* Tabs */}
+          <div className="m-2">
+            <div className="flex">
+              {tabs.map(tab => (
+                <button
+                  key={tab.id}
+                  className={`py-3 px-16 w-1/2 text-center ${
+                    activeTab === tab.id 
+                      ? 'text-[#518394] border-b-2 border-[#518394] font-medium' 
+                      : 'text-gray-500 hover:text-gray-700'
                   }`}
-                  onClick={() => handleFreelancerClick(talent)}
+                  onClick={() => setActiveTab(tab.id)}
                 >
-                  <div className="flex">
-                    {/* Avatar */}
-                    <div className="mr-4">
-                      <div className="relative">
-                        <div className="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full">
-                          <User size={32} className="text-blue-500" />
+                  {tab.name}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          {/* Talent List */}
+          <div className="flex-1 p-4 overflow-auto">
+            {sortedTalents.length === 0 ? (
+              <div className="py-8 text-center">
+                <p className="text-gray-600 dark:text-gray-400">Aucun freelancer trouvé</p>
+                <button 
+                  onClick={loadFreelancers}
+                  className="mt-4 px-4 py-2 bg-[#518394] text-white rounded hover:bg-[#4a7688] transition-colors"
+                >
+                  Recharger
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4">
+                {sortedTalents.map((talent, index) => (
+                  <div 
+                    key={talent.id} 
+                    className={`p-4 bg-white rounded-lg shadow dark:!bg-navy-800 border cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02] ${
+                      selectedFreelancer?.id === talent.id 
+                        ? 'border-[#518394] bg-blue-50 dark:bg-blue-900/20' 
+                        : 'border-[#4242425a] hover:border-[#518394]'
+                    }`}
+                    onClick={() => handleFreelancerClick(talent)}
+                  >
+                    <div className="flex">
+                      {/* Avatar */}
+                      <div className="mr-4">
+                        <div className="relative">
+                          <div className="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full">
+                            <User size={32} className="text-blue-500" />
+                          </div>
+                          <div className="absolute w-6 h-6 bg-green-500 border-2 border-white rounded-full -bottom-1 -right-1"></div>
                         </div>
-                        <div className="absolute w-6 h-6 bg-green-500 border-2 border-white rounded-full -bottom-1 -right-1"></div>
-                      </div>
-                    </div>
-                    
-                    {/* Informations principales */}
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="text-xl font-bold dark:text-white">{talent.name}</h3>
-                          <p className="text-lg dark:text-white">{talent.title}</p>
-                        </div>
-                        <ArrowRight className="text-[#518394] w-5 h-5" />
                       </div>
                       
-                      {/* Statistiques */}
-                      <div className="flex items-center mt-2 space-x-6 dark:text-white">
-                        <div className="font-medium">{talent.rate}</div>
-                        <div className="flex items-center">
-                          <VscVerifiedFilled className="w-4 h-4 mr-1 rounded-full text-[#1dc2fb]"/>
-                          <span>{talent.success}% Job Success</span>
+                      {/* Informations principales */}
+                      <div className="flex-1">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h3 className="text-xl font-bold dark:text-white">{talent.name}</h3>
+                            <p className="text-lg dark:text-white">{talent.title}</p>
+                            {/* Badge pour indiquer si c'est un talent récent */}
+                            {activeTab === 'mostRecent' && talent.createdAt && (
+                              (() => {
+                                const daysAgo = Math.floor((new Date() - new Date(talent.createdAt)) / (1000 * 60 * 60 * 24));
+                                if (daysAgo < 7) {
+                                  return (
+                                    <span className="inline-block mt-1 px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+                                      🆕 {daysAgo === 0 ? 'Today' : `${daysAgo}d ago`}
+                                    </span>
+                                  );
+                                }
+                                return null;
+                              })()
+                            )}
+                          </div>
+                          <ArrowRight className="text-[#518394] w-5 h-5" />
                         </div>
-                        <div>${talent.earned}K+ Earned</div>
-                        <div className="flex items-center">
-                          <Star className="w-4 h-4 mr-1 text-yellow-500 fill-current" />
-                          <span>{talent.rating}/5</span>
+                        
+                        {/* Statistiques */}
+                        <div className="flex items-center mt-2 space-x-6 dark:text-white">
+                          <div className="font-medium">{talent.rate}</div>
+                          <div className="flex items-center">
+                            <VscVerifiedFilled className="w-4 h-4 mr-1 rounded-full text-[#1dc2fb]"/>
+                            <span>{talent.success}% Job Success</span>
+                          </div>
+                          <div>${talent.earned}K+ Earned</div>
+                          <div className="flex items-center">
+                            <Star className="w-4 h-4 mr-1 text-yellow-500 fill-current" />
+                            <span>{talent.rating}/5</span>
+                          </div>
                         </div>
-                      </div>
-                      
-                      {/* Bio (tronquée) */}
-                      <p className="mt-3 text-gray-600 dark:text-gray-300 line-clamp-2">
-                        {talent.bio.length > 150 ? `${talent.bio.substring(0, 150)}...` : talent.bio}
-                      </p>
-                      
-                      {/* Compétences (limitées) */}
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        {talent.skills.slice(0, 4).map((skill, index) => (
-                          <span 
-                            key={index} 
-                            className="px-3 py-1 text-sm text-gray-800 border rounded-full dark:text-white dark:border-gray-600"
-                          >
-                            {skill}
-                          </span>
-                        ))}
-                        {talent.skills.length > 4 && (
-                          <span className="px-3 py-1 text-sm text-gray-500 border rounded-full dark:text-gray-400">
-                            +{talent.skills.length - 4} more
-                          </span>
+                        
+                        {/* Bio (tronquée) */}
+                        <p className="mt-3 text-gray-600 dark:text-gray-300 line-clamp-2">
+                          {talent.bio.length > 150 ? `${talent.bio.substring(0, 150)}...` : talent.bio}
+                        </p>
+                        
+                        {/* Compétences (limitées) */}
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          {talent.skills.slice(0, 4).map((skill, index) => (
+                            <span 
+                              key={index} 
+                              className="px-3 py-1 text-sm text-gray-800 border rounded-full dark:text-white dark:border-gray-600"
+                            >
+                              {skill}
+                            </span>
+                          ))}
+                          {talent.skills.length > 4 && (
+                            <span className="px-3 py-1 text-sm text-gray-500 border rounded-full dark:text-gray-400">
+                              +{talent.skills.length - 4} more
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Indicateur de position dans le tri (utile pour le debug) */}
+                        {activeTab === 'mostRecent' && (
+                          <div className="text-xs text-gray-400 mt-2">
+                            Position: #{index + 1} • Rejoint le: {talent.createdAt ? new Date(talent.createdAt).toLocaleDateString('fr-FR') : 'Date inconnue'}
+                          </div>
                         )}
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Panneau latéral de détails */}
       <div className={`fixed top-0 right-0 h-full lg:w-1/2 sm:w-full md:w-full bg-white dark:bg-navy-800 shadow-2xl border-l border-gray-200 dark:border-gray-700 z-50 transform transition-transform duration-300 ease-in-out ${
