@@ -11,7 +11,8 @@ import {
 import { Link } from "react-router-dom";
 import { useUser } from "../../hooks/useUser";
 
-import avatar from "../../assets/img/profile/banner.png";
+import {  getImageUrl } from '../../api/image';
+import { getClient } from '../../api/client';
 import { IoMdArrowDropdown } from "react-icons/io";
 import { MdArrowDropUp } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
@@ -21,6 +22,46 @@ const Navbar = (props) => {
   const [darkmode, setDarkmode] = React.useState(false);
   const [selected, setSelected] = useState('');
   const [isOpen, setIsOpen] = useState(false);
+  const [profileData, setProfileData] = useState({
+      name: "",
+      email: "",
+      phone: "",
+      description: "",
+      rating: 0,
+      status: "",
+      role: "",
+      clientId: "",
+      profileImage: null // Nom du fichier image
+    });
+     useEffect(() => {
+        const fetchClientData = async () => {
+          try {
+            
+            let clientId= user?.id;
+            
+            const data = await getClient(clientId);
+    
+            const profileDataFromApi = {
+              name: data.data.name,
+              email: data.data.email,
+              phone: data.data.phone,
+              description: data.data.description,
+              rating: data.data.rating,
+              status: data.data.status,
+              role: data.data.role,
+              clientId: clientId,
+              profileImage: data.data.profileImage || null
+            };
+    
+            setProfileData(profileDataFromApi);
+            console.log("Données du profil chargées:", profileDataFromApi);
+          } catch (err) {
+            console.error("Erreur lors du chargement des données du client:", err);
+          } 
+        };
+    
+        fetchClientData();
+      }, []);
   useEffect(() => {
     const savedDarkMode = localStorage.getItem('darkMode') === 'true';
     if (savedDarkMode) {
@@ -28,6 +69,13 @@ const Navbar = (props) => {
       setDarkmode(true);
     }
   }, []);
+  const getAvatarUrl = () => {
+    if (profileData.profileImage) {
+      console.log("Image de profil trouvée:", profileData.profileImage);
+      return getImageUrl(profileData.profileImage);
+    }
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(profileData.name)}&background=3b82f6&color=fff&size=200`;
+  };
 
   const toggleDropdown = () => setIsOpen(!isOpen);
 
@@ -175,8 +223,11 @@ const Navbar = (props) => {
             button={
               <img
                 className="w-10 h-10 rounded-full"
-                src={avatar}
-                alt="Elon Musk"
+                src={getAvatarUrl()}
+                alt="Image Profile"
+                onError={(e) => {
+                e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(profileData.name)}&background=3b82f6&color=fff&size=200`;
+              }}
               />
             }
             children={
@@ -200,12 +251,12 @@ const Navbar = (props) => {
                   <button
                     onClick={handleLogout}
                     disabled={loggingOut}
-                    className="mt-3 text-sm font-medium text-red-500 hover:text-red-500 transition duration-150 ease-out hover:ease-in flex items-center gap-2"
+                    className="flex items-center gap-2 mt-3 text-sm font-medium text-red-500 transition duration-150 ease-out hover:text-red-500 hover:ease-in"
                   >
                     {loggingOut ? (
                       <>
                         <svg
-                          className="animate-spin h-4 w-4 mr-2 text-red-500"
+                          className="w-4 h-4 mr-2 text-red-500 animate-spin"
                           xmlns="http://www.w3.org/2000/svg"
                           fill="none"
                           viewBox="0 0 24 24"
