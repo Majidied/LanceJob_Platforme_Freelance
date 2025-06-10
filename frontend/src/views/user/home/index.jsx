@@ -17,6 +17,7 @@ const Home = () => {
       rate: '$30.00/hr',
       success: '98%',
       earned: '$20K+',
+      level: 'expert',
       description: 'Passionate about building sleek, responsive websites and bringing ideas to life through 3D design. Skilled in front-end development and 3D modeling tools to create engaging digital experiences.',
       skills: ['Web Design', 'Visual Design', 'Blender', 'Web Design', 'Visual Design', 'Blender', 'Web Design', 'Visual Design']
     },
@@ -27,6 +28,7 @@ const Home = () => {
       rate: '$30.00/hr',
       success: '98%',
       earned: '$20K+',
+      level: 'beginner',
       description: 'Passionate about building sleek, responsive websites and bringing ideas to life through 3D design. Skilled in front-end development and 3D modeling tools to create engaging digital experiences.',
       skills: ['Web Design', 'Visual Design', 'Blender']
     },
@@ -37,6 +39,7 @@ const Home = () => {
       rate: '$35.00/hr',
       success: '95%',
       earned: '$32K+',
+      level: 'expert',
       description: 'Expert in crafting intuitive user interfaces and comprehensive brand identity systems. Combining aesthetics with functionality to create memorable digital experiences.',
       skills: ['UI Design', 'UX Research', 'Figma', 'Adobe XD', 'Brand Strategy']
     },
@@ -47,6 +50,7 @@ const Home = () => {
       rate: '$45.00/hr',
       success: '97%',
       earned: '$75K+',
+      level: 'intermediate',
       description: 'Versatile developer with expertise in both frontend and backend technologies. Specialized in building scalable applications with AWS infrastructure.',
       skills: ['React', 'Node.js', 'AWS', 'MongoDB', 'TypeScript']
     },
@@ -57,6 +61,7 @@ const Home = () => {
       rate: '$28.00/hr',
       success: '92%',
       earned: '$18K+',
+      level: 'begginer',
       description: 'Creative professional specializing in motion graphics and video editing. Transforming concepts into compelling visual stories that engage audiences.',
       skills: ['After Effects', 'Premiere Pro', 'Cinema 4D', 'Animation', 'Storyboarding']
     },
@@ -67,6 +72,7 @@ const Home = () => {
       rate: '$40.00/hr',
       success: '96%',
       earned: '$45K+',
+      level: 'expert',
       description: 'Results-driven backend developer with extensive experience in Python. Expert in creating robust APIs and optimizing database performance.',
       skills: ['Python', 'Django', 'Flask', 'PostgreSQL', 'API Development']
     },
@@ -77,6 +83,7 @@ const Home = () => {
       rate: '$25.00/hr',
       success: '94%',
       earned: '$28K+',
+      level: 'expert',
       description: 'Strategic digital marketer focused on driving organic growth through data-driven SEO strategies and comprehensive digital marketing campaigns.',
       skills: ['SEO', 'Content Strategy', 'Google Analytics', 'Social Media', 'Email Marketing']
     },
@@ -87,6 +94,7 @@ const Home = () => {
       rate: '$38.00/hr',
       success: '91%',
       earned: '$42K+',
+      level: 'expert',
       description: 'Passionate game developer creating immersive gaming experiences with Unity. Skilled in game mechanics, physics, and interactive storytelling.',
       skills: ['Unity', 'C#', 'Game Design', '3D Modeling', 'Animation']
     },
@@ -97,6 +105,7 @@ const Home = () => {
       rate: '$50.00/hr',
       success: '99%',
       earned: '$85K+',
+      level: 'expert',
       description: 'Expert in transforming complex data into actionable insights. Specializing in predictive modeling and developing machine learning solutions for business challenges.',
       skills: ['Python', 'Machine Learning', 'Data Analysis', 'TensorFlow', 'SQL']
     },
@@ -107,6 +116,7 @@ const Home = () => {
       rate: '$48.00/hr',
       success: '98%',
       earned: '$62K+',
+      level: 'expert',
       description: 'Experienced in streamlining development processes and implementing robust CI/CD pipelines. Expert in cloud infrastructure and containerization.',
       skills: ['Docker', 'Kubernetes', 'AWS', 'CI/CD', 'Terraform']
     }
@@ -154,6 +164,7 @@ const Home = () => {
                       <span>{talent.success} Job Success</span>
                     </div>
                     <div>{talent.earned} Earned</div>
+                    <div>{talent.level} Level</div>
                   </div>
                   
                   <p className="mt-3 text-gray-600">{talent.description}</p>

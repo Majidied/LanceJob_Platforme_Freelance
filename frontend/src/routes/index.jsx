@@ -7,12 +7,14 @@ import Userayout from "../pages/user";
 import FreelancerLayout from "../pages/freelancer";
 import { hasAccessToken, getUserData } from '../utils/tokenStorage';
 import { ProtectedRoute } from './ProtectedRoute';
-
+import Job from '../components/landing/job';
+import Search from '../pages/search';
 const Routes = () => {
   const userData = getUserData();
   const isFreelancer = userData?.isFreelancer || false;
 
   const routesForPublic = [
+    { path: '/search', element: < Search/> },
     { path: '/', element: <Landing /> },
     { path: '/service', element: <div>Service Page</div> },
     { path: '/about-us', element: <div>About Us</div> }
