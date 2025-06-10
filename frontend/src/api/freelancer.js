@@ -1,4 +1,4 @@
-import api from "./api"; // Votre instance API existante
+import api from "./api"; 
 
 // Fonctions individuelles (gardez-les si vous les utilisez ailleurs)
 export const fetchFreelancers = async () => {
@@ -13,6 +13,12 @@ export const createFreelancer = async (freelancerData) => {
 
 export const getFreelancer = async (id) => {
   const response = await api.get(`/freelancer/${id}`);
+  return response.data;
+};
+
+// ✅ Nouvelle fonction pour mettre à jour un freelancer
+export const updateFreelancer = async (id, updatedData) => {
+  const response = await api.put(`/freelancer/${id}`, updatedData);
   return response.data;
 };
 

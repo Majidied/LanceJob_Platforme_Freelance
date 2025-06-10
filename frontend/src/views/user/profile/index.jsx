@@ -70,7 +70,7 @@ const Profile = () => {
     };
 
     fetchClientData();
-  }, []);
+  }, [user?.id]);
 
   // Gestion de l'upload d'image
   const handleImageUpload = async (event) => {
