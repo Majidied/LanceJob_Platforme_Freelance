@@ -10,3 +10,4 @@ dist/
 build/
 logs/
 tmp/
+src/uploads/
