@@ -55,29 +55,63 @@ const freelancerSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Mission'
   }],
+  // ✅ NOUVEAU: Section pour les offres/invitations reçues
   offers: [{
     mission: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Mission'
+      ref: 'Mission',
+      required: true
     },
     client: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'client'
+      ref: 'User', // Client qui invite
+      required: true
     },
-    offerDate: {
+    invitationDate: {
       type: Date,
       default: Date.now
     },
     status: {
       type: String,
-      enum: ['pending', 'accepted', 'rejected'],
+      enum: ['pending', 'accepted', 'rejected', 'withdrawn'],
       default: 'pending'
     },
-    price: {
-      type: Number
+    type: {
+      type: String,
+      enum: ['application', 'invitation'], // application = candidature normale, invitation = invitation directe
+      default: 'invitation'
     },
     message: {
+      type: String,
+      required: true
+    },
+    proposedPrice: {
+      type: Number,
+      required: true
+    },
+    currency: {
+      type: String,
+      default: 'MAD'
+    },
+    deadline: {
+      type: Date
+    },
+    requirements: {
       type: String
+    },
+    // Champs spécifiques aux invitations
+    invitationDetails: {
+      urgency: {
+        type: String,
+        enum: ['low', 'medium', 'high', 'urgent'],
+        default: 'medium'
+      },
+      estimatedDuration: {
+        type: String // ex: "2 semaines", "1 mois"
+      },
+      startDate: {
+        type: Date
+      }
     }
   }]
 }, { timestamps: true });

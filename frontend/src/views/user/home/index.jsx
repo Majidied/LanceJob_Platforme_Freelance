@@ -1,15 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { User, X, Star, MapPin, Phone, Mail, ArrowRight } from 'lucide-react';
+import { User, X, Star, MapPin, Phone, Mail, ArrowRight, Send } from 'lucide-react';
 import { VscVerifiedFilled } from "react-icons/vsc";
 import { fetchFreelancers } from '../../../api/freelancer';
+import { fetchMissions } from '../../../api/mission';
+import InviteFreelancerModal from '../../../components/InviteFreelancerModal';
 
 const Home = () => {
   const [activeTab, setActiveTab] = useState('bestMatches');
   const [talents, setTalents] = useState([]);
+  const [missions, setMissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedFreelancer, setSelectedFreelancer] = useState(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
+  
+  // ✅ États pour le modal d'invitation
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [selectedMission, setSelectedMission] = useState(null);
+
+  // ✅ ID du client - à ajuster selon votre logique d'authentification
+  const CLIENT_ID = '682bb996ee9d07f9a96d0aef';
 
   const tabs = [
     { id: 'bestMatches', name: 'Best Matches' },
@@ -35,7 +45,7 @@ const Home = () => {
         };
 
         return {
-          id: freelancer._id || freelancer.id,
+          _id: freelancer._id || freelancer.id,
           name: freelancer.name || getFirstValue(freelancer.name, 'Nom non disponible'),
           email: freelancer.email,
           phone: getFirstValue(freelancer.phone, 'Non renseigné'),
@@ -62,8 +72,28 @@ const Home = () => {
     }
   };
 
+  // ✅ Charger les missions du client
+  const loadClientMissions = async () => {
+    try {
+      const response = await fetchMissions();
+      const missionsArray = Array.isArray(response) 
+        ? response 
+        : (response?.data || response?.missions || Object.values(response || {}));
+      
+      // Filtrer les missions du client connecté
+      const clientMissions = missionsArray.filter(
+        mission => mission.client === CLIENT_ID && mission.status === 'published'
+      );
+      
+      setMissions(clientMissions);
+    } catch (error) {
+      console.error("Erreur lors du chargement des missions :", error);
+    }
+  };
+
   useEffect(() => {
     loadFreelancers();
+    loadClientMissions();
   }, []);
 
   const handleFreelancerClick = (freelancer) => {
@@ -75,7 +105,29 @@ const Home = () => {
     setIsPanelOpen(false);
     setTimeout(() => {
       setSelectedFreelancer(null);
-    }, 300); // Attendre la fin de l'animation
+    }, 300);
+  };
+
+  // ✅ Ouvrir le modal d'invitation
+  const handleInviteFreelancer = (mission) => {
+    if (!mission) {
+      alert('Veuillez sélectionner une mission pour inviter ce freelancer.');
+      return;
+    }
+    setSelectedMission(mission);
+    setIsInviteModalOpen(true);
+  };
+
+  // ✅ Fermer le modal d'invitation
+  const handleCloseInviteModal = () => {
+    setIsInviteModalOpen(false);
+    setSelectedMission(null);
+  };
+
+  // ✅ Callback après envoi d'invitation
+  const handleInvitationSent = (result) => {
+    console.log('Invitation sent:', result);
+    // Optionnel: rafraîchir les données ou afficher une notification
   };
 
   if (loading) {
@@ -107,8 +159,6 @@ const Home = () => {
 
   return (
     <div className="relative flex flex-col h-full">
-
-
       {/* Liste principale */}
       <div className="flex flex-col h-full">
         {/* Tabs */}
@@ -140,9 +190,9 @@ const Home = () => {
             <div className="grid grid-cols-1 gap-4">
               {talents.map(talent => (
                 <div 
-                  key={talent.id} 
+                  key={talent._id} 
                   className={`p-4 bg-white rounded-lg shadow dark:!bg-navy-800 border cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02] ${
-                    selectedFreelancer?.id === talent.id 
+                    selectedFreelancer?._id === talent._id 
                       ? 'border-[#518394] bg-blue-50 dark:bg-blue-900/20' 
                       : 'border-[#4242425a] hover:border-[#518394]'
                   }`}
@@ -325,6 +375,36 @@ const Home = () => {
                 </div>
               </div>
 
+              {/* ✅ Section Missions Disponibles */}
+              {missions.length > 0 && (
+                <div>
+                  <h4 className="mb-2 font-semibold dark:text-white">
+                    Inviter à une mission ({missions.length})
+                  </h4>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {missions.map((mission) => (
+                      <div 
+                        key={mission._id}
+                        className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                        onClick={() => handleInviteFreelancer(mission)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <h5 className="font-medium text-sm dark:text-white line-clamp-1">
+                              {mission.title}
+                            </h5>
+                            <p className="text-xs text-gray-600 dark:text-gray-400">
+                              Budget: {mission.budget} MAD
+                            </p>
+                          </div>
+                          <Send size={16} className="text-[#518394]" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Activité */}
               <div>
                 <h4 className="mb-2 font-semibold dark:text-white">Activité</h4>
@@ -349,14 +429,29 @@ const Home = () => {
                 <button className="w-full py-2 bg-[#518394] text-white rounded font-medium hover:bg-[#4a7688] transition-colors">
                   Contacter
                 </button>
-                <button className="w-full py-2 border border-[#518394] text-[#518394] rounded font-medium hover:bg-[#518394] hover:text-white transition-colors">
-                  Inviter à une mission
-                </button>
+                {missions.length > 0 && (
+                  <button 
+                    onClick={() => missions.length === 1 ? handleInviteFreelancer(missions[0]) : null}
+                    className="w-full py-2 border border-[#518394] text-[#518394] rounded font-medium hover:bg-[#518394] hover:text-white transition-colors"
+                  >
+                    {missions.length === 1 ? 'Inviter à ma mission' : 'Choisir une mission'}
+                  </button>
+                )}
               </div>
             </div>
           </div>
         )}
       </div>
+
+      {/* ✅ Modal d'Invitation */}
+      <InviteFreelancerModal
+        isOpen={isInviteModalOpen}
+        onClose={handleCloseInviteModal}
+        freelancer={selectedFreelancer}
+        mission={selectedMission}
+        clientId={CLIENT_ID}
+        onInvitationSent={handleInvitationSent}
+      />
     </div>
   );
 };
