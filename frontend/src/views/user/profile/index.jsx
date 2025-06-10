@@ -36,7 +36,7 @@ const Profile = () => {
       try {
         setIsLoading(true);
         
-        let clientId = '682bb6d5799bb3e67ea05392';
+        let clientId = '682f9aba2e3e22de044d7942';
         
         const data = await getClient(clientId);
 

@@ -33,7 +33,7 @@ const Navbar = (props) => {
         const fetchClientData = async () => {
           try {
             
-            let clientId = '682bb6d5799bb3e67ea05392';
+            let clientId = '682f9aba2e3e22de044d7942';
             
             const data = await getClient(clientId);
     
@@ -217,7 +217,7 @@ const getAvatarUrl = () => {
               <div className="p-4">
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-bold text-navy-700 dark:text-white">
-                    👋 Hey, Sawssan
+                    👋 Hey
                   </p>{" "}
                 </div>
               </div>
