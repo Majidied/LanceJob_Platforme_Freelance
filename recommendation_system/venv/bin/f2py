@@ -1,4 +1,4 @@
-#!/home/majidi/Documents/lancejob/recommendation_system/venv/bin/python
+#!/home/majidi/Documents/lancejob/recommendation_system/venv/bin/python3
 # -*- coding: utf-8 -*-
 import re
 import sys
