@@ -107,6 +107,21 @@ exports.applyToMission = async (req, res, next) => {
       data: { missionId, status: 'pending' }
     });
   } catch (error) {
+
+exports.searchMission = async (req, res, next) => {
+  try {
+    const searchText = req.query.q || '';
+    if (!searchText) {
+      return res.status(400).json({ message: 'Search query is required' });
+    }
+
+    console.log('Search Query:', searchText); // Debugging log
+    const missions = await missionService.searchMissions(searchText);
+    console.log('Search Results:', missions); // Debugging log
+
+    res.status(200).json({ data: missions });
+  } catch (error) {
+    console.error('Search Mission Error:', error); // Debugging log
     next(error);
   }
 };

@@ -1,13 +1,16 @@
-//freelancer/home/index.jsx - Optimized Version
+//freelancer/home/index.jsx - Merged and Enhanced Version
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Heart, BarChart3, Activity } from 'lucide-react';
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useFreelancer } from '../../../context/FreelancerContext';
 import useUser from '../../../hooks/useUser';
 import useRecommendations from '../../../hooks/useRecommendations';
 import useJobTracking from '../../../hooks/useJobTracking';
 import TrackingAnalytics from '../../../components/tracking/TrackingAnalytics';
 import TrackingDemo from '../../../components/tracking/TrackingDemo';
+import SearchJob from '../../../components/landing/job';
+import SearchTalent from '../../../components/landing/freelancer';
+import useSearch from '../../../hooks/usesearch';
 
 // Constants
 const TABS = [
@@ -54,12 +57,19 @@ const sortJobsByDate = (jobs) =>
   });
 
 const Home = () => {
+  const location = useLocation();
+  
   // State management
   const [activeTab, setActiveTab] = useState('bestMatches');
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showTrackingDemo, setShowTrackingDemo] = useState(false);
   const [trackingHistory, setTrackingHistory] = useState([]);
-  const [lastTrackedSession, setLastTrackedSession] = useState(null); // Track last session to prevent duplicates
+  const [lastTrackedSession, setLastTrackedSession] = useState(null);
+  
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchSelected, setSearchSelected] = useState('Jobs');
+  const [isSearchActive, setIsSearchActive] = useState(false);
   
   // Context and hooks
   const { jobs, loading, error, fetchJobs, toggleSaveJob } = useFreelancer();
@@ -82,15 +92,36 @@ const Home = () => {
     trackBatchViews,
     refetch: refetchRecommendations
   } = useRecommendations(RECOMMENDATIONS_CONFIG);
-
+  
+  // Search functionality
+  const searchType = searchSelected === 'Jobs' ? 'jobs' : 'freelancers';
+  const { freelancers, jobs: searchJobs, isLoading } = useSearch(searchQuery, searchType);
+  
   // Extract missions from recommendations
   const recommendedJobs = useMemo(() => {
     if (!recommendations?.length) return [];
     return recommendations.map(rec => rec.mission).filter(Boolean);
   }, [recommendations]);
   
+  // Read query parameters from URL on initial load
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const q = params.get('q') || '';
+    const type = params.get('type') || 'jobs';
+
+    if (q.trim()) {
+      setSearchQuery(q);
+      setIsSearchActive(true);
+      setSearchSelected(type === 'freelancers' || type === 'talent' ? 'Talents' : 'Jobs');
+    } else {
+      setSearchQuery('');
+      setIsSearchActive(false);
+      setSearchSelected('Jobs');
+    }
+  }, [location.search]);
+  
   // Memoized computed values
-  const isLoading = useMemo(() => 
+  const isLoadingJobs = useMemo(() => 
     loading.jobs || (activeTab === 'bestMatches' && isRecommendationsLoading),
     [loading.jobs, activeTab, isRecommendationsLoading]
   );
@@ -112,7 +143,20 @@ const Home = () => {
     }
     
     if (!jobs?.length) return [];
-    return sortJobsByDate(jobs);
+    
+    // Create a copy to avoid mutating original state
+    const jobsCopy = [...jobs];
+    
+    if (activeTab === 'mostRecent') {
+      return sortJobsByDate(jobsCopy);
+    } else {
+      // For 'bestMatches', apply different sorting criteria
+      return jobsCopy.sort((a, b) => {
+        const budgetA = parseFloat(a.budget || a.price || 0);
+        const budgetB = parseFloat(b.budget || b.price || 0);
+        return budgetB - budgetA;
+      });
+    }
   }, [jobs, recommendedJobs, activeTab]);
   
   const shouldShowNoRecommendationsMessage = useMemo(() => 
@@ -131,13 +175,12 @@ const Home = () => {
   // Optimized tracking functions with debouncing
   const addToTrackingHistory = useCallback((interaction) => {
     setTrackingHistory(prev => {
-      // Prevent duplicate consecutive interactions of the same type
       const lastInteraction = prev[prev.length - 1];
       if (lastInteraction && 
           lastInteraction.jobId === interaction.jobId && 
           lastInteraction.interactionType === interaction.interactionType &&
           Date.now() - new Date(lastInteraction.metadata.timestamp).getTime() < 1000) {
-        return prev; // Skip duplicate within 1 second
+        return prev;
       }
       
       return [...prev.slice(-(MAX_TRACKING_HISTORY - 1)), interaction];
@@ -197,23 +240,21 @@ const Home = () => {
     trackAndStore(trackJobApplication, jobId, { action: 'apply_click' }, 'apply');
   }, [trackAndStore, trackJobApplication]);
   
-  // Debounced hover tracking to prevent spam
+  // Debounced hover tracking
   const hoverTimeoutRef = React.useRef(null);
   
   const handleJobHover = useCallback((jobId, hoverType) => {
-    // Clear previous timeout
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current);
     }
     
-    // Only track hover_start with debouncing, skip hover_end spam
     if (hoverType === 'hover_start') {
       hoverTimeoutRef.current = setTimeout(() => {
         trackAndStore(trackJobView, jobId, { 
           action: 'card_hover',
           engagementType: 'hover'
         }, 'view');
-      }, 300); // 300ms debounce for hover
+      }, 300);
     }
   }, [trackAndStore, trackJobView]);
   
@@ -236,18 +277,15 @@ const Home = () => {
     }
   }, [activeTab, trackRefresh, createTrackingMetadata, refetchRecommendations, fetchJobs]);
   
-  // Effects - Optimized to prevent continuous tracking
+  // Effects
   useEffect(() => {
     const jobIds = sortedJobs.map(job => job._id).filter(Boolean);
-    if (!jobIds.length) return;
+    if (!jobIds.length || isSearchActive) return;
     
-    // Create a stable identifier for this view session
     const sessionId = `${activeTab}-${jobIds.length}-${Date.now()}`;
     
-    // Check if we already tracked this exact session
     if (lastTrackedSession === sessionId) return;
     
-    // Debounce the tracking to prevent rapid fire
     const trackingTimer = setTimeout(() => {
       setLastTrackedSession(sessionId);
       
@@ -260,7 +298,6 @@ const Home = () => {
       
       trackJobView('batch', metadata);
       
-      // Track recommendations specifically
       if (activeTab === 'bestMatches' && recommendations?.length) {
         trackBatchViews(jobIds, { 
           action: 'page_view',
@@ -268,10 +305,10 @@ const Home = () => {
           sessionId
         });
       }
-    }, 1000); // 1 second debounce
+    }, 1000);
     
     return () => clearTimeout(trackingTimer);
-  }, [activeTab, sortedJobs.length, lastTrackedSession]); // Controlled dependencies
+  }, [activeTab, sortedJobs.length, lastTrackedSession, isSearchActive]);
   
   // Render helpers
   const renderNewJobBadge = useCallback((job) => {
@@ -339,7 +376,7 @@ const Home = () => {
   }, [activeTab]);
   
   // Early returns for loading and error states
-  if (isLoading) {
+  if (!isSearchActive && isLoadingJobs) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#518394]"></div>
@@ -347,7 +384,7 @@ const Home = () => {
     );
   }
   
-  if (hasError) {
+  if (!isSearchActive && hasError) {
     return (
       <div className="text-red-500 text-center p-4">
         <p>Error loading {activeTab === 'bestMatches' ? 'recommendations' : 'jobs'}: {currentError?.message || currentError}</p>
@@ -363,172 +400,211 @@ const Home = () => {
   
   return (
     <div className="flex flex-col h-full">
-      {/* Header with tabs and controls */}
-      <div className="m-2">
-        <div className="flex justify-between items-center">
-          <div className="flex">
-            {TABS.map(tab => (
-              <button
-                key={tab.id}
-                className={`py-3 px-16 w-1/2 text-center relative ${
-                  activeTab === tab.id 
-                    ? 'text-[#518394] border-b-2 border-[#518394] font-medium' 
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-                onClick={() => handleTabChange(tab.id)}
-              >
-                {tab.name}
-              </button>
-            ))}
-          </div>
-          
-          {/* Analytics and Demo Controls */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => setShowTrackingDemo(true)}
-              className="flex items-center gap-2 px-3 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
-              title="Try Live Tracking Demo"
-            >
-              <Activity size={16} />
-              <span className="text-sm font-medium">Demo</span>
-            </button>
-            
-            <button
-              onClick={() => setShowAnalytics(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors"
-              title="View Tracking Analytics"
-            >
-              <BarChart3 size={18} />
-              <span className="text-sm font-medium">Analytics</span>
-              {trackingHistory.length > 0 && (
-                <span className="bg-indigo-500 text-white text-xs px-2 py-1 rounded-full">
-                  {trackingHistory.length}
+      {/* Search Results or Normal View */}
+      {isSearchActive ? (
+        <div className="flex-1">
+          {/* Search Loading */}
+          {(isLoading || isLoadingJobs) && (
+            <div className="flex justify-center items-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#518394]"></div>
+              <span className="ml-2 text-gray-600 dark:text-gray-300">
+                Searching {searchSelected.toLowerCase()}...
+              </span>
+            </div>
+          )}
+
+          {/* Search Results */}
+          {!isLoading && !isLoadingJobs && (
+            <div className="p-4">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
+                  Search Results for "{searchQuery}"
+                </h2>
+                <span className="text-sm text-gray-500">
+                  {searchSelected === 'Jobs' 
+                    ? `${Array.isArray(searchJobs) ? searchJobs.length : 0} jobs found`
+                    : `${Array.isArray(freelancers) ? freelancers.length : 0} talents found`
+                  }
                 </span>
+              </div>
+              {searchSelected === 'Jobs' ? (
+                <SearchJob jobs={Array.isArray(searchJobs) ? searchJobs : []} search={searchQuery} />
+              ) : (
+                <SearchTalent talents={Array.isArray(freelancers) ? freelancers : []} search={searchQuery} />
               )}
-            </button>
-          </div>
-        </div>
-      </div>
-      
-      {/* Content area */}
-      {shouldShowNoRecommendationsMessage ? (
-        <div className="flex-1 flex flex-col items-center justify-center p-8">
-          <p className="text-gray-500 text-center mb-4">
-            No personalized recommendations available. We're learning your preferences!
-          </p>
-          <button 
-            onClick={handleRefreshJobs}
-            className="px-4 py-2 bg-[#518394] text-white rounded hover:bg-[#406c7a]"
-          >
-            Refresh
-          </button>
-        </div>
-      ) : !hasContent ? (
-        <div className="flex-1 flex flex-col items-center justify-center p-8">
-          <p className="text-gray-500 text-center mb-4">
-            No jobs available at the moment.
-          </p>
-          <button 
-            onClick={handleRefreshJobs}
-            className="px-4 py-2 bg-[#518394] text-white rounded hover:bg-[#406c7a]"
-          >
-            Refresh
-          </button>
+            </div>
+          )}
         </div>
       ) : (
-        /* Job Listings */
-        <div className="flex-1 w-full max-w-screen-xl p-4 mx-auto">
-          <div className="flex flex-col gap-4">
-            {sortedJobs.map((job, index) => (
-              <div 
-                key={job._id} 
-                className="p-6 bg-white rounded-lg shadow dark:!bg-navy-800 border border-[#4242425a]"
-                onMouseEnter={() => handleJobHover(job._id, 'hover_start')}
-                // Removed onMouseLeave to prevent spam
-              >
-                <div className="flex justify-between">
-                  <div className="flex-1">
-                    {/* Job Header */}
-                    <div className="flex justify-between mb-3">
-                      <div className="flex items-center">
-                        <h3 className="text-xl font-bold dark:text-white">
-                          {getSafeValue(job.title, 'Titre non disponible')}
-                        </h3>
-                        {renderNewJobBadge(job)}
-                        {renderRecommendationBadge(job)}
-                      </div>
-                      <div className="flex items-center">
-                        <span className="mr-2 text-gray-500">
-                          {getRelativeTime(job.createdAt)}
-                        </span>
-                        <Heart 
-                          className={`w-6 h-6 cursor-pointer transition-colors ${
-                            job.isSaved ? 'fill-red-500 text-red-500' : 'text-gray-300 hover:text-red-300'
-                          }`}
-                          onClick={() => handleToggleFavorite(job._id)}
-                        />
-                      </div>
-                    </div>
-                    
-                    {/* Skills */}
-                    {renderSkills(job)}
-                    
-                    {/* Description */}
-                    <p className="mb-4 text-gray-600 dark:text-gray-300">
-                      {getSafeValue(job.description, 'Description non disponible')}
-                    </p>
-                    <Link 
-                      to={`/freelancer/jobs/${job._id}`} 
-                      className="mb-4 text-blue-500 hover:text-blue-700 cursor-pointer"
-                      onClick={() => handleJobClick(job._id)}
-                    >
-                      Read more
-                    </Link>
-                    
-                    {/* Job Details Table */}
-                    <div className="flex mb-4 rounded-lg bg-[#F3F9FA] dark:!bg-navy-900">
-                      <div className="flex-1 p-4">
-                        <div className="text-sm text-gray-500">Price</div>
-                        <div className="text-black dark:text-white">
-                          {getSafeValue(job.budget || job.price, '0')} {getSafeValue(job.currency, 'MAD')}
-                        </div>
-                      </div>
-                      <div className="flex-1 p-4">
-                        <div className="text-sm text-gray-500">Type</div>
-                        <div className="text-black dark:text-white">
-                          {getSafeValue(job.priceType || job.type || job.paymentType || job.budgetType, 'Fixed')}
-                        </div>
-                      </div>
-                      <div className="flex-1 p-4">
-                        <div className="text-sm text-gray-500">Timeline</div>
-                        <div className="text-black dark:text-white">
-                          {job.deadline ? new Date(job.deadline).toLocaleDateString('fr-FR') : getSafeValue(job.timeline || job.duration, 'Non spécifié')}
-                        </div>
-                      </div>
-                      <div className="flex-1 p-4">
-                        <div className="text-sm text-gray-500">Experience</div>
-                        <div className="text-black dark:text-white">
-                          {getSafeValue(job.experienceLevel || job.experience || job.level || job.skillLevel, 'Intermediate')}
-                        </div>
-                      </div>
-                      <div className="p-4 ml-auto pt-7">
-                        <Link
-                          to={`/freelancer/propose/${job._id}`}
-                          className="px-6 py-2 text-white transition-colors duration-200 bg-[#86C1A3] rounded-md hover:bg-[#5f9478]"
-                          onClick={() => handleApplyClick(job._id)}
-                        >
-                          Apply
-                        </Link>
-                      </div>
-                    </div>
-                    
-                    {/* Debug Info */}
-                    {renderDebugInfo(job, index)}
-                  </div>
-                </div>
+        /* Normal Job Listing View */
+        <div className="flex-1">
+          {/* Header with tabs and controls */}
+          <div className="m-2">
+            <div className="flex justify-between items-center">
+              <div className="flex">
+                {TABS.map(tab => (
+                  <button
+                    key={tab.id}
+                    className={`py-3 px-16 w-1/2 text-center relative ${
+                      activeTab === tab.id 
+                        ? 'text-[#518394] border-b-2 border-[#518394] font-medium' 
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                    onClick={() => handleTabChange(tab.id)}
+                  >
+                    {tab.name}
+                  </button>
+                ))}
               </div>
-            ))}
+              
+              {/* Analytics and Demo Controls */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowTrackingDemo(true)}
+                  className="flex items-center gap-2 px-3 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
+                  title="Try Live Tracking Demo"
+                >
+                  <Activity size={16} />
+                  <span className="text-sm font-medium">Demo</span>
+                </button>
+                
+                <button
+                  onClick={() => setShowAnalytics(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors"
+                  title="View Tracking Analytics"
+                >
+                  <BarChart3 size={18} />
+                  <span className="text-sm font-medium">Analytics</span>
+                  {trackingHistory.length > 0 && (
+                    <span className="bg-indigo-500 text-white text-xs px-2 py-1 rounded-full">
+                      {trackingHistory.length}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
+          
+          {/* Content area */}
+          {shouldShowNoRecommendationsMessage ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-8">
+              <p className="text-gray-500 text-center mb-4">
+                No personalized recommendations available. We're learning your preferences!
+              </p>
+              <button 
+                onClick={handleRefreshJobs}
+                className="px-4 py-2 bg-[#518394] text-white rounded hover:bg-[#406c7a]"
+              >
+                Refresh
+              </button>
+            </div>
+          ) : !hasContent ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-8">
+              <p className="text-gray-500 text-center mb-4">
+                No jobs available at the moment.
+              </p>
+              <button 
+                onClick={handleRefreshJobs}
+                className="px-4 py-2 bg-[#518394] text-white rounded hover:bg-[#406c7a]"
+              >
+                Refresh
+              </button>
+            </div>
+          ) : (
+            /* Job Listings */
+            <div className="flex-1 w-full max-w-screen-xl p-4 mx-auto">
+              <div className="flex flex-col gap-4">
+                {sortedJobs.map((job, index) => (
+                  <div 
+                    key={job._id} 
+                    className="p-6 bg-white rounded-lg shadow dark:!bg-navy-800 border border-[#4242425a]"
+                    onMouseEnter={() => handleJobHover(job._id, 'hover_start')}
+                  >
+                    <div className="flex justify-between">
+                      <div className="flex-1">
+                        {/* Job Header */}
+                        <div className="flex justify-between mb-3">
+                          <div className="flex items-center">
+                            <h3 className="text-xl font-bold dark:text-white">
+                              {getSafeValue(job.title, 'Titre non disponible')}
+                            </h3>
+                            {renderNewJobBadge(job)}
+                            {renderRecommendationBadge(job)}
+                          </div>
+                          <div className="flex items-center">
+                            <span className="mr-2 text-gray-500">
+                              {getRelativeTime(job.createdAt)}
+                            </span>
+                            <Heart 
+                              className={`w-6 h-6 cursor-pointer transition-colors ${
+                                job.isSaved ? 'fill-red-500 text-red-500' : 'text-gray-300 hover:text-red-300'
+                              }`}
+                              onClick={() => handleToggleFavorite(job._id)}
+                            />
+                          </div>
+                        </div>
+                        
+                        {/* Skills */}
+                        {renderSkills(job)}
+                        
+                        {/* Description */}
+                        <p className="mb-4 text-gray-600 dark:text-gray-300">
+                          {getSafeValue(job.description, 'Description non disponible')}
+                        </p>
+                        <Link 
+                          to={`/freelancer/jobs/${job._id}`} 
+                          className="mb-4 text-blue-500 hover:text-blue-700 cursor-pointer"
+                          onClick={() => handleJobClick(job._id)}
+                        >
+                          Read more
+                        </Link>
+                        
+                        {/* Job Details Table */}
+                        <div className="flex mb-4 rounded-lg bg-[#F3F9FA] dark:!bg-navy-900">
+                          <div className="flex-1 p-4">
+                            <div className="text-sm text-gray-500">Price</div>
+                            <div className="text-black dark:text-white">
+                              {getSafeValue(job.budget || job.price, '0')} {getSafeValue(job.currency, 'MAD')}
+                            </div>
+                          </div>
+                          <div className="flex-1 p-4">
+                            <div className="text-sm text-gray-500">Type</div>
+                            <div className="text-black dark:text-white">
+                              {getSafeValue(job.priceType || job.type || job.paymentType || job.budgetType, 'Fixed')}
+                            </div>
+                          </div>
+                          <div className="flex-1 p-4">
+                            <div className="text-sm text-gray-500">Timeline</div>
+                            <div className="text-black dark:text-white">
+                              {job.deadline ? new Date(job.deadline).toLocaleDateString('fr-FR') : getSafeValue(job.timeline || job.duration, 'Non spécifié')}
+                            </div>
+                          </div>
+                          <div className="flex-1 p-4">
+                            <div className="text-sm text-gray-500">Experience</div>
+                            <div className="text-black dark:text-white">
+                              {getSafeValue(job.experienceLevel || job.experience || job.level || job.skillLevel, 'Intermediate')}
+                            </div>
+                          </div>
+                          <div className="p-4 ml-auto pt-7">
+                            <Link
+                              to={`/freelancer/propose/${job._id}`}
+                              className="px-6 py-2 text-white transition-colors duration-200 bg-[#86C1A3] rounded-md hover:bg-[#5f9478]"
+                              onClick={() => handleApplyClick(job._id)}
+                            >
+                              Apply
+                            </Link>
+                          </div>
+                        </div>
+                        
+                        {/* Debug Info */}
+                        {renderDebugInfo(job, index)}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
       

@@ -4,6 +4,7 @@ const { trackMissionView, createInteractionTracker } = require('../middleware/in
 
 const router = express.Router();
 
+router.get('/search', missionController.searchMission);
 router.get('/', missionController.getAllMissions);
 router.get('/:id', trackMissionView, missionController.getMissionById);
 router.post('/', missionController.createMission);

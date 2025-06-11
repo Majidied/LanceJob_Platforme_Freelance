@@ -38,6 +38,10 @@ const freelancerSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Mission'
   }],
+  experience: [{
+    type: String,
+    enum: ['beginner', 'intermediate', 'expert']
+  }],
   appliedMissions: [{
     mission: {
       type: mongoose.Schema.Types.ObjectId,

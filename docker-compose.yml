@@ -161,3 +161,27 @@ networks:
     ipam:
       config:
         - subnet: 172.20.0.0/16
+      - lance_job_network
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    networks:
+      - lance_job_network
+
+volumes:
+  mongo_data:
+  redis_data:
+  es_data:
+
+networks:
+  lance_job_network:
+    driver: bridge

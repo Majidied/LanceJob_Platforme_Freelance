@@ -4,7 +4,7 @@ import { FiAlignJustify } from "react-icons/fi";
 import { BsArrowBarUp } from "react-icons/bs";
 import { FiSearch } from "react-icons/fi";
 import { RiMoonFill, RiSunFill } from "react-icons/ri";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   IoMdNotificationsOutline,
 } from "react-icons/io";
@@ -15,12 +15,14 @@ import {  getImageUrl } from '../../api/image';
 import { getClient } from '../../api/client';
 import { IoMdArrowDropdown } from "react-icons/io";
 import { MdArrowDropUp } from "react-icons/md";
-import { useNavigate } from "react-router-dom";
 
 const Navbar = (props) => {
   const { onOpenSidenav, brandText } = props;
   const [darkmode, setDarkmode] = React.useState(false);
-  const [selected, setSelected] = useState('');
+  
+  // Search state
+  const [searchInput, setSearchInput] = useState('');
+  const [selected, setSelected] = useState('Jobs');
   const [isOpen, setIsOpen] = useState(false);
   const [profileData, setProfileData] = useState({
       name: "",
@@ -62,6 +64,10 @@ const Navbar = (props) => {
     
         fetchClientData();
       }, []);
+  
+  const location = useLocation();
+  const navigate = useNavigate();
+  
   useEffect(() => {
     const savedDarkMode = localStorage.getItem('darkMode') === 'true';
     if (savedDarkMode) {
@@ -77,18 +83,70 @@ const Navbar = (props) => {
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(profileData.name)}&background=3b82f6&color=fff&size=200`;
   };
 
+  // Initialize search input from URL parameters
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const q = params.get('q') || '';
+    const type = params.get('type') || 'jobs';
+
+    if (q.trim()) {
+      setSearchInput(q);
+      setSelected(type === 'freelancers' || type === 'talent' ? 'Talents' : 'Jobs');
+    }
+  }, [location.search]);
+
   const toggleDropdown = () => setIsOpen(!isOpen);
 
   const handleSelect = (value) => {
     setSelected(value);
     setIsOpen(false);
+    
+    // If there's already a search query, perform search with new type
+    const query = searchInput.trim();
+    if (query) {
+      performSearch(query, value);
+    }
   };
-  const location = useLocation();
+
+  const performSearch = (query, searchType = selected) => {
+    if (!query.trim()) return;
+    
+    const type = searchType === 'Talents' ? 'freelancers' : 'jobs';
+    const isFreelancer = location.pathname.includes("/freelancer");
+    const basePath = isFreelancer ? "/freelancer/home" : "/user/home";
+    
+    // Navigate to home with search parameters
+    navigate(`${basePath}?q=${encodeURIComponent(query.trim())}&type=${type}`);
+  };
+
+  const handleSearchKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      performSearch(searchInput);
+    }
+  };
+
+  const handleSearchInputChange = (e) => {
+    const value = e.target.value;
+    setSearchInput(value);
+    
+    // If input is cleared and we're on a search results page, navigate back to clean home
+    if (!value.trim() && location.search) {
+      const isFreelancer = location.pathname.includes("/freelancer");
+      const basePath = isFreelancer ? "/freelancer/home" : "/user/home";
+      navigate(basePath);
+    }
+  };
+
+  const getSearchPlaceholderText = () => {
+    return selected === 'Jobs'
+      ? "Search for jobs..."
+      : "Search for talents, skills, or expertise...";
+  };
+
   const isFreelancer = location.pathname.includes("/freelancer");
   const homeLink = isFreelancer ? "/freelancer/profile" : "/user/profile";
   const { logoutUser } = useUser();
   const [loggingOut, setLoggingOut] = useState(false);
-  const navigate = useNavigate();
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -112,7 +170,10 @@ const Navbar = (props) => {
           </p>
           <input
             type="text"
-            placeholder="Search..."
+            placeholder={getSearchPlaceholderText()}
+            value={searchInput}
+            onChange={handleSearchInputChange}
+            onKeyDown={handleSearchKeyDown}
             className="block h-full w-full rounded-full bg-lightPrimary text-sm font-medium text-navy-700 outline-none placeholder:!text-gray-400 dark:bg-navy-900  dark:placeholder:!text-white sm:w-fit"
           />
           <div className="absolute right-0">
@@ -120,7 +181,7 @@ const Navbar = (props) => {
               onClick={toggleDropdown}
               className="flex items-center h-12 pr-3 text-base text-right rounded-full cursor-pointer w-30 bg-lightPrimary text-navy-700 dark:bg-navy-900 dark:text-white"
             >
-              <span>{selected || 'Jobs'}</span>
+              <span>{selected}</span>
               <span className="ml-auto">{isOpen ? <MdArrowDropUp className="w-8 h-8 text-navy-700 dark:text-white " />
                 : <IoMdArrowDropdown className="w-6 h-6 text-navy-700 dark:text-white " />}</span>
             </div>

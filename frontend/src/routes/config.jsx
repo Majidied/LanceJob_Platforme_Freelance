@@ -11,11 +11,17 @@ const UserLayout = lazy(() => import('../pages/user/index'));
 const FreelancerLayout = lazy(() => import('../pages/freelancer/index'));
 const NotFoundPage = lazy(() => import('../pages/NotFound'));
 const UnauthorizedPage = lazy(() => import('../pages/Unauthorized'));
+const SearchPage = lazy(() => import('../pages/search'));
 
 export const routesConfig = [
   { 
     path: '/', 
     element: <PublicRoute><Landing /></PublicRoute>, 
+    public: true 
+  },
+  { 
+    path: '/search', 
+    element: <PublicRoute><SearchPage /></PublicRoute>, 
     public: true 
   },
   { 
