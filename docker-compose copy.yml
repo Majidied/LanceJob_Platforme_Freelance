@@ -1,0 +1,189 @@
+version: '3.8'
+
+services:
+  # MongoDB database
+  mongodb:
+    image: mongo:6.0
+    container_name: lancejob-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: lancejob_db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./backend/scripts:/docker-entrypoint-initdb.d
+    networks:
+      - lancejob-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Redis cache
+  redis:
+    image: redis:7-alpine
+    container_name: lancejob-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass password123
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - lancejob-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Elasticsearch for search functionality
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    container_name: lancejob-elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - cluster.name=lancejob-cluster
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    networks:
+      - lancejob-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Python recommendation API
+  recommendation-api:
+    build:
+      context: ./recommendation_system
+      dockerfile: Dockerfile
+    container_name: lancejob-recommendation-api
+    restart: unless-stopped
+    environment:
+      - MONGODB_URI=mongodb://admin:password123@mongodb:27017/lancejob_db?authSource=admin
+      - REDIS_URL=redis://:password123@redis:6379/0
+      - FLASK_ENV=production
+      - LOG_LEVEL=info
+    ports:
+      - "2511:2511"
+    volumes:
+      - recommendation_logs:/app/logs
+      - recommendation_models:/app/models
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - lancejob-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:2511/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Node.js backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: lancejob-backend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://admin:password123@mongodb:27017/lancejob_db?authSource=admin
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=password123
+      - RECOMMENDATION_API_URL=http://recommendation-api:2511
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - PORT=3000
+    ports:
+      - "3000:3000"
+    volumes:
+      - backend_logs:/app/logs
+    depends_on:
+      - mongodb
+      - redis
+      - elasticsearch
+      - recommendation-api
+    networks:
+      - lancejob-network
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # React frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: lancejob-frontend
+    restart: unless-stopped
+    ports:
+      - "5000:80"
+    depends_on:
+      - backend
+    networks:
+      - lancejob-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Batch processor for ML model retraining
+  batch-processor:
+    build:
+      context: ./recommendation_system
+      dockerfile: Dockerfile
+    container_name: lancejob-batch-processor
+    restart: unless-stopped
+    environment:
+      - MONGODB_URI=mongodb://admin:password123@mongodb:27017/lancejob_db?authSource=admin
+      - REDIS_URL=redis://:password123@redis:6379/0
+      - BATCH_MODE=true
+      - LOG_LEVEL=info
+    command: ["python", "batch_processor.py", "--daemon"]
+    volumes:
+      - recommendation_logs:/app/logs
+      - recommendation_models:/app/models
+    depends_on:
+      - mongodb
+      - redis
+      - recommendation-api
+    networks:
+      - lancejob-network
+
+volumes:
+  mongodb_data:
+    driver: local
+  redis_data:
+    driver: local
+  es_data:
+    driver: local
+  recommendation_logs:
+    driver: local
+  recommendation_models:
+    driver: local
+  backend_logs:
+    driver: local
+
+networks:
+  lancejob-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

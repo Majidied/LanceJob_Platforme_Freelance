@@ -107,6 +107,9 @@ exports.applyToMission = async (req, res, next) => {
       data: { missionId, status: 'pending' }
     });
   } catch (error) {
+    next(error);
+  }
+};
 
 exports.searchMission = async (req, res, next) => {
   try {
@@ -224,10 +227,10 @@ exports.contactClient = async (req, res, next) => {
 };
 exports.updateApplicationStatus = async (req, res) => {
   const { missionId, applicationId } = req.params;
-  const { status,currentApplicationId } = req.body;
+  const { status, currentApplicationId } = req.body;
 
   try {
-    const updatedMission = await missionService.updateApplicationStatus(missionId, applicationId, status,currentApplicationId);
+    const updatedMission = await missionService.updateApplicationStatus(missionId, applicationId, status, currentApplicationId);
 
     if (!updatedMission) {
       return res.status(404).json({ message: 'Mission or application not found' });

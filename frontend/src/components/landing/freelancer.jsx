@@ -102,7 +102,10 @@ const SearchTalent = ({ talents = [] }) => {
   const formatExperience = (exp) => {
     const expStr = getArrayValue(exp);
     if (!expStr) return 'Not specified';
-    return expStr.charAt(0).toUpperCase() + expStr.slice(1);
+    
+    // Convert to string to ensure charAt works
+    const expString = String(expStr);
+    return expString.charAt(0).toUpperCase() + expString.slice(1);
   };
 
   // Helper function to format status

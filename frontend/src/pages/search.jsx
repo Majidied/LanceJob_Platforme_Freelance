@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Search, ChevronDown } from 'lucide-react';
-import logo from '../assets/Lancelogo.png';
 import SearchJob from '../components/landing/job';
 import SearchTalent from '../components/landing/freelancer';
 import useSearch from '../hooks/usesearch';
