@@ -1,6 +1,9 @@
 import 'api_service.dart';
 import '../models/client.dart';
 
+// Create an alias for convenience
+typedef Api = ApiService;
+
 // Get client by ID
 Future<ProfileModel> getClient(String id) async {
   final response = await Api.get('/client/$id');
@@ -65,7 +68,7 @@ Future<List<ProfileModel>> fetchClients() async {
 
 // Update client
 Future<ProfileModel> updateClient(String id, Map<String, dynamic> updatedData) async {
-  final response = await Api.put('/client/$id', updatedData);
+  final response = await Api.put('/client/$id', data: updatedData);
   
   try {
     if (response is Map<String, dynamic>) {
@@ -89,7 +92,7 @@ Future<ProfileModel> updateClient(String id, Map<String, dynamic> updatedData) a
 
 // Create client
 Future<ProfileModel> createClient(Map<String, dynamic> clientData) async {
-  final response = await Api.post('/client', clientData);
+  final response = await Api.post('/client', data: clientData);
   
   try {
     if (response is Map<String, dynamic>) {

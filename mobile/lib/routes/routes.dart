@@ -5,8 +5,14 @@ import 'package:flutter/material.dart';
 import '../screens/user/home_screen.dart';
 import '../screens/user/my_offers_screen.dart';
 import '../screens/user/add_offer_screen.dart';
-import '../screens/user/messages_screen.dart';
+import '../screens/user/messages_screen.dart' as user_messages;
 import '../screens/freelancer/freelancer_home_screen.dart';
+import '../screens/job_search_screen.dart';
+import '../screens/saved_jobs_screen.dart';
+import '../screens/messages_screen.dart' as main_messages;
+import '../screens/enhanced_profile_screen.dart';
+import '../screens/my_applications_screen.dart';
+import '../screens/my_posted_jobs_screen.dart';
 
 class RouteInfo {
   final String name;
@@ -58,7 +64,7 @@ final List<RouteInfo> userRoutes = [
     layout: "/user",
     path: "messages",
     icon: Icons.message,
-    screen: const MessagesScreen(),
+    screen: const user_messages.MessagesScreen(),
     secondary: true,
     badge: 5,
   ),
@@ -87,6 +93,14 @@ Map<String, Widget Function(BuildContext)> getAppRoutes() {
     String fullPath = '${route.layout}/${route.path}';
     routes[fullPath] = (context) => route.screen;
   }
+  
+  // Add additional common routes
+  routes['/job-search'] = (context) => const JobSearchScreen();
+  routes['/saved-jobs'] = (context) => const SavedJobsScreen();
+  routes['/messages'] = (context) => const main_messages.MessagesScreen();
+  routes['/profile'] = (context) => const EnhancedProfileScreen();
+  routes['/my-applications'] = (context) => const MyApplicationsScreen();
+  routes['/my-posted-jobs'] = (context) => const MyPostedJobsScreen();
   
   return routes;
 }

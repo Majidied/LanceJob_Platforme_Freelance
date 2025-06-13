@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../models/mission.dart';
 import 'api_service.dart';
 
+// Create an alias for convenience
+typedef Api = ApiService;
+
 /// Récupère toutes les missions disponibles
 Future<List<Mission>> fetchMissions() async {
   try {
@@ -78,7 +81,7 @@ Future<Mission> getMission(String id) async {
 /// Crée une nouvelle mission
 Future<Mission> createMission(Map<String, dynamic> missionData) async {
   try {
-    final response = await Api.post('/mission', missionData);
+    final response = await Api.post('/mission', data: missionData);
     return Mission.fromMap(response is Map<String, dynamic> 
         ? response 
         : Map<String, dynamic>.from(response as Map));
@@ -91,7 +94,7 @@ Future<Mission> createMission(Map<String, dynamic> missionData) async {
 /// Met à jour une mission existante
 Future<Mission> updateMission(String id, Map<String, dynamic> missionData) async {
   try {
-    final response = await Api.put('/mission/$id', missionData);
+    final response = await Api.put('/mission/$id', data: missionData);
     return Mission.fromMap(response is Map<String, dynamic> 
         ? response 
         : Map<String, dynamic>.from(response as Map));

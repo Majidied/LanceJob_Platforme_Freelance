@@ -4,7 +4,6 @@ import '../../widgets/navbar.dart';
 import '../../widgets/sidebar.dart';
 import '../../models/client.dart';
 import '../../services/client_service.dart';
-import 'dart:convert';
 
 class ProfilScreen extends StatefulWidget {
   const ProfilScreen({Key? key}) : super(key: key);

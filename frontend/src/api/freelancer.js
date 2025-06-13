@@ -16,6 +16,12 @@ export const getFreelancer = async (id) => {
   return response.data;
 };
 
+// Public function to get freelancer profile without authentication
+export const getFreelancerPublic = async (id) => {
+  const response = await api.get(`/freelancer/public/${id}`);
+  return response.data;
+};
+
 // ✅ Nouvelle fonction pour mettre à jour un freelancer
 export const updateFreelancer = async (id, updatedData) => {
   const response = await api.put(`/freelancer/${id}`, updatedData);

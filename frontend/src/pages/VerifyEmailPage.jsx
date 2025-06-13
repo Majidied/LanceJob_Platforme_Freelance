@@ -3,8 +3,6 @@ import React from 'react';
 import EmailVerificationForm from '../components/EmailVerification';
 
 const VerifyEmailPage = () => {
-  // Vous pourriez récupérer l'email de l'URL ou d'un état global
-  const email = new URLSearchParams(window.location.search).get('email') || 'user@example.com';
   
   const handleVerify = (code) => {
     // Appel API pour vérifier le code
@@ -18,7 +16,7 @@ const VerifyEmailPage = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      <EmailVerificationForm email={email} onVerify={handleVerify} />
+      <EmailVerificationForm  onVerify={handleVerify} />
     </div>
   );
 };

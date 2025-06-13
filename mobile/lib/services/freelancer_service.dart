@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../models/freelancer.dart';
 import 'api_service.dart';
 
+// Create an alias for convenience
+typedef Api = ApiService;
+
 /// Récupère un freelancer spécifique par son ID
 Future<Freelancer> getFreelancer(String id) async {
   try {
@@ -44,7 +47,7 @@ Future<List<Freelancer>> fetchFreelancers() async {
 /// Met à jour les informations d'un freelancer
 Future<Freelancer> updateFreelancer(String id, Map<String, dynamic> updatedData) async {
   try {
-    final response = await Api.put('/freelancer/$id', updatedData);
+    final response = await Api.put('/freelancer/$id', data: updatedData);
     return Freelancer.fromMap(response);
   } catch (e) {
     debugPrint('Erreur lors de la mise à jour du freelancer $id: $e');
@@ -55,7 +58,7 @@ Future<Freelancer> updateFreelancer(String id, Map<String, dynamic> updatedData)
 /// Crée un nouveau freelancer
 Future<Freelancer> createFreelancer(Map<String, dynamic> freelancerData) async {
   try {
-    final response = await Api.post('/freelancer', freelancerData);
+    final response = await Api.post('/freelancer', data: freelancerData);
     return Freelancer.fromMap(response);
   } catch (e) {
     debugPrint('Erreur lors de la création du freelancer: $e');

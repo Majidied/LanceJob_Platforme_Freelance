@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Star, Upload, X, Plus, Edit, Trash2 } from 'lucide-react';
-import { getFreelancer, updateFreelancer } from '../../../api/freelancer';
+import { getFreelancerPublic, updateFreelancer } from '../../../api/freelancer';
 import { uploadProfileImage, deleteProfileImage, getImageUrl } from '../../../api/image';
+import useUser from '../../../hooks/useUser';
 
 const Profile = () => {
+  const { user } = useUser();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [debugInfo, setDebugInfo] = useState(''); // Pour debug
@@ -40,16 +42,16 @@ const Profile = () => {
   const fileInputRef = useRef(null);
 
   // ✅ ID du freelancer - utiliser celui de votre context ou un ID valide
-  const FREELANCER_ID = '6830ee0e4fc7edee46cf57ea';
+  const FREELANCER_ID = user?.id;
 
   // ✅ Fonction de test API
-  const testAPI = async () => {
+  const testAPI = useCallback(async () => {
     try {
       console.log('🔍 Testing API connection...');
       setDebugInfo('Testing API connection...');
       
-      // Test de l'endpoint
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/freelancer/${FREELANCER_ID}`);
+      // Test de l'endpoint public
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/freelancer/public/${FREELANCER_ID}`);
       console.log('📡 API Response status:', response.status);
       console.log('📡 API Response headers:', response.headers);
       
@@ -70,7 +72,7 @@ const Profile = () => {
       setDebugInfo(`API Test Failed: ${error.message}`);
       throw error;
     }
-  };
+  }, [FREELANCER_ID, setDebugInfo]);
 
   // Charger les données du freelancer depuis l'API
   useEffect(() => {
@@ -87,10 +89,11 @@ const Profile = () => {
         // ✅ Test direct de l'API d'abord
         const testResult = await testAPI();
         
-        // ✅ Puis utiliser la fonction getFreelancer
-        console.log('📞 Calling getFreelancer function...');
-        const data = await getFreelancer(FREELANCER_ID);
-        console.log('📦 getFreelancer response:', data);
+        // ✅ Puis utiliser la fonction getFreelancerPublic (public endpoint)
+        console.log('📞 Calling getFreelancerPublic function...');
+        const data = await getFreelancerPublic(FREELANCER_ID);
+        console.log('✅ getFreelancerPublic function called successfully', data);
+        console.log('📦 getFreelancerPublic response:', data);
 
         // ✅ Vérification de la structure des données
         if (!data || !data.data) {
@@ -146,7 +149,7 @@ const Profile = () => {
     };
 
     fetchFreelancerData();
-  }, []);
+  }, [FREELANCER_ID, testAPI]);
 
   // ✅ Fonction de debug pour vérifier la connectivité
   const handleDebugTest = async () => {

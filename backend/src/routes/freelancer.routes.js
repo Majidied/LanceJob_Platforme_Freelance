@@ -4,6 +4,8 @@ const router = express.Router();
 const { authenticateJWT, verificationUser} = require('../middleware/auth.middleware');
 
 router.get('/search', freelancerController.searchFreelancers);
+// Public route for viewing freelancer profiles
+router.get('/public/:id', freelancerController.getFreelancerById);
 router.get('/', authenticateJWT, verificationUser, freelancerController.getAllFreelancers);
 router.get('/:id', authenticateJWT, verificationUser, freelancerController.getFreelancerById);
 router.post('/', authenticateJWT, verificationUser, freelancerController.createFreelancer);

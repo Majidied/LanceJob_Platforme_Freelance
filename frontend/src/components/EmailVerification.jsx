@@ -92,7 +92,7 @@ const EmailVerification = ({ email = "examp****le@gmail.com", onVerify = () => {
               Verify your email
             </h2>
             <p className="text-gray-600 mb-1">
-              We have sent a verification code to <span className="text-blue-600">{email}</span>.
+              We have sent a verification code to your mail.
             </p>
             <p className="text-gray-600">
               Please check your inbox and input the code below to activate your account.

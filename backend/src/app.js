@@ -9,7 +9,9 @@ const app = express();
 // Middleware
 app.use(helmet());
 app.use(cors({
-    origin: 'http://localhost:5000',
+    origin: process.env.NODE_ENV === 'production' 
+        ? ['http://localhost:5000'] 
+        : true, // Allow all origins in development
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true

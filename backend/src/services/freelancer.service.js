@@ -1,4 +1,5 @@
 const Freelancer = require('../models/freelancer.model');
+const Mission = require('../models/mission.model');
 const { Client } = require('@elastic/elasticsearch');
 const esClient = new Client({ node: 'http://localhost:9200' });
 const mongoose = require('mongoose');

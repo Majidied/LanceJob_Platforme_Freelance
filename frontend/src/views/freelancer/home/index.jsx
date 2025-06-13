@@ -305,10 +305,10 @@ const Home = () => {
           sessionId
         });
       }
-    }, 1000);
+    }, 50000);
     
     return () => clearTimeout(trackingTimer);
-  }, [activeTab, sortedJobs.length, lastTrackedSession, isSearchActive]);
+  }, [activeTab, sortedJobs.length, lastTrackedSession, isSearchActive, sortedJobs, createTrackingMetadata, trackJobView, recommendations?.length, trackBatchViews]);
   
   // Render helpers
   const renderNewJobBadge = useCallback((job) => {
