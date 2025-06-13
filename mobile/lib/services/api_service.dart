@@ -254,8 +254,8 @@ class ApiService {
 
   Future<Job> getJobById(String id) async {
     try {
-      final response = await _dio.get('/jobs/$id');
-      return Job.fromJson(response.data['job']);
+      final response = await _dio.get('/missions/$id');
+      return Job.fromJson(response.data['mission']);
     } catch (e) {
       throw _handleError(e);
     }

@@ -6,7 +6,7 @@ import '../models/job.dart';
 import '../widgets/job_card.dart';
 
 class JobSearchScreen extends StatefulWidget {
-  const JobSearchScreen({Key? key}) : super(key: key);
+  const JobSearchScreen({super.key});
 
   @override
   State<JobSearchScreen> createState() => _JobSearchScreenState();
@@ -14,7 +14,6 @@ class JobSearchScreen extends StatefulWidget {
 
 class _JobSearchScreenState extends State<JobSearchScreen> {
   final _searchController = TextEditingController();
-  String _selectedCategory = 'all';
   String _selectedExperience = 'all';
   String _selectedType = 'all';
   double _minBudget = 0;

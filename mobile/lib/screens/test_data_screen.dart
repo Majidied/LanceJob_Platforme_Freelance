@@ -4,7 +4,7 @@ import '../providers/data_provider.dart';
 import '../providers/auth_provider.dart';
 
 class TestDataScreen extends StatefulWidget {
-  const TestDataScreen({Key? key}) : super(key: key);
+  const TestDataScreen({super.key});
 
   @override
   State<TestDataScreen> createState() => _TestDataScreenState();
@@ -95,9 +95,9 @@ class _TestDataScreenState extends State<TestDataScreen> {
                         Text('Jobs (${dataProvider.jobs.length})', style: Theme.of(context).textTheme.titleLarge),
                         SizedBox(height: 8),
                         ...dataProvider.jobs.take(5).map((job) => ListTile(
-                          title: Text(job['title'] ?? 'No Title'),
-                          subtitle: Text('\$${job['budget']} • ${job['category']}'),
-                          trailing: Text(job['status'] ?? 'Unknown'),
+                          title: Text(job.title),
+                          subtitle: Text('\$${job.budget} • ${job.skills.join(', ')}'),
+                          trailing: Text(job.status.toString().split('.').last),
                         )),
                         if (dataProvider.jobs.length > 5)
                           Text('... and ${dataProvider.jobs.length - 5} more'),
@@ -117,8 +117,8 @@ class _TestDataScreenState extends State<TestDataScreen> {
                         Text('Featured Jobs (${dataProvider.featuredJobs.length})', style: Theme.of(context).textTheme.titleLarge),
                         SizedBox(height: 8),
                         ...dataProvider.featuredJobs.map((job) => ListTile(
-                          title: Text(job['title'] ?? 'No Title'),
-                          subtitle: Text('\$${job['budget']} • ${job['category']}'),
+                          title: Text(job.title),
+                          subtitle: Text('\$${job.budget} • ${job.skills.join(', ')}'),
                           trailing: Icon(Icons.star, color: Colors.orange),
                         )),
                       ],

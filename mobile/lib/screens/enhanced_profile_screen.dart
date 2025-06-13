@@ -77,7 +77,7 @@ class PortfolioItem {
 }
 
 class EnhancedProfileScreen extends StatefulWidget {
-  const EnhancedProfileScreen({Key? key}) : super(key: key);
+  const EnhancedProfileScreen({super.key});
 
   @override
   State<EnhancedProfileScreen> createState() => _EnhancedProfileScreenState();

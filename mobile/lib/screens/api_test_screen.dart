@@ -4,7 +4,7 @@ import '../providers/auth_provider.dart';
 import '../providers/data_provider.dart';
 
 class ApiTestScreen extends StatefulWidget {
-  const ApiTestScreen({Key? key}) : super(key: key);
+  const ApiTestScreen({super.key});
 
   @override
   State<ApiTestScreen> createState() => _ApiTestScreenState();

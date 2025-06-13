@@ -46,12 +46,14 @@ class DataProvider extends ChangeNotifier {
     }
   }
 
-  // Job operations - Now using actual API calls
+  // Job operations - Using static data for testing
   Future<void> loadJobs() async {
     try {
       _setLoading(true);
-      final jobsData = await _api.getMissions();
-      _jobs = jobsData.map((jobMap) => _mapToJob(jobMap)).toList();
+      // Simulate network delay
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      _jobs = _getStaticJobs();
       notifyListeners();
     } catch (e) {
       _setError('Failed to load jobs: $e');
@@ -63,8 +65,10 @@ class DataProvider extends ChangeNotifier {
   Future<void> loadFeaturedJobs() async {
     try {
       _setLoading(true);
-      final featuredJobsData = await _api.getFeaturedMissions();
-      _featuredJobs = featuredJobsData.map((jobMap) => _mapToJob(jobMap)).toList();
+      // Simulate network delay
+      await Future.delayed(const Duration(milliseconds: 300));
+      
+      _featuredJobs = _getStaticFeaturedJobs();
       notifyListeners();
     } catch (e) {
       _setError('Failed to load featured jobs: $e');
@@ -73,45 +77,204 @@ class DataProvider extends ChangeNotifier {
     }
   }
 
-  // Helper method to convert Map to Job object
-  Job _mapToJob(Map<String, dynamic> jobMap) {
-    return Job(
-      id: jobMap['_id']?.toString() ?? jobMap['id']?.toString() ?? '',
-      title: jobMap['title']?.toString() ?? 'Untitled Job',
-      description: jobMap['description']?.toString() ?? 'No description available',
-      budget: (jobMap['budget'] is num) ? (jobMap['budget'] as num).toDouble() : 1000.0,
-      clientId: jobMap['clientId']?.toString() ?? jobMap['userId']?.toString() ?? '',
-      clientName: jobMap['clientName']?.toString() ?? 'Anonymous Client',
-      clientAvatar: jobMap['clientAvatar']?.toString(),
-      currency: jobMap['currency']?.toString() ?? 'MAD',
-      type: jobMap['type']?.toString() ?? 'fixed',
-      skills: (jobMap['skills'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? ['General'],
-      experienceLevel: jobMap['experienceLevel']?.toString() ?? jobMap['experience']?.toString() ?? 'intermediate',
-      deadline: DateTime.tryParse(jobMap['deadline']?.toString() ?? '') ?? DateTime.now().add(const Duration(days: 30)),
-      createdAt: DateTime.tryParse(jobMap['createdAt']?.toString() ?? '') ?? DateTime.now(),
-      status: _parseJobStatus(jobMap['status']?.toString() ?? 'open'),
-      location: jobMap['location']?.toString(),
-      isRemote: jobMap['isRemote'] == true,
-      applicationsCount: (jobMap['applicationsCount'] is num) ? (jobMap['applicationsCount'] as num).toInt() : 0,
-      attachments: (jobMap['attachments'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
-      isFeatured: jobMap['isFeatured'] == true,
-      isUrgent: jobMap['isUrgent'] == true,
-    );
+  // Static data methods for testing
+  List<Job> _getStaticJobs() {
+    return [
+      Job(
+        id: '1',
+        title: 'Développement d\'une application mobile Flutter',
+        description: 'Nous recherchons un développeur Flutter expérimenté pour créer une application mobile moderne et intuitive. L\'application doit inclure l\'authentification, la géolocalisation, et l\'intégration avec des APIs REST.',
+        clientId: 'client1',
+        clientName: 'TechCorp SA',
+        budget: 15000,
+        type: 'fixed',
+        skills: ['Flutter', 'Dart', 'Firebase', 'API REST'],
+        experienceLevel: 'expert',
+        deadline: DateTime.now().add(const Duration(days: 30)),
+        createdAt: DateTime.now().subtract(const Duration(hours: 2)),
+        isRemote: true,
+        isFeatured: true,
+        applicationsCount: 12,
+      ),
+      Job(
+        id: '2',
+        title: 'Design UI/UX pour plateforme e-commerce',
+        description: 'Conception d\'une interface utilisateur moderne et intuitive pour notre plateforme e-commerce. Besoin d\'expertise en design responsive et en expérience utilisateur.',
+        clientId: 'client2',
+        clientName: 'E-Shop Plus',
+        budget: 8000,
+        type: 'fixed',
+        skills: ['UI/UX Design', 'Figma', 'Adobe XD', 'Prototyping'],
+        experienceLevel: 'intermediate',
+        deadline: DateTime.now().add(const Duration(days: 20)),
+        createdAt: DateTime.now().subtract(const Duration(hours: 5)),
+        isRemote: true,
+        applicationsCount: 8,
+      ),
+      Job(
+        id: '3',
+        title: 'Développement API Backend Node.js',
+        description: 'Développement d\'une API robuste et scalable pour notre application web. L\'API doit gérer l\'authentification, les données utilisateur et les transactions.',
+        clientId: 'client3',
+        clientName: 'StartupTech',
+        budget: 12000,
+        type: 'fixed',
+        skills: ['Node.js', 'Express', 'MongoDB', 'JWT'],
+        experienceLevel: 'expert',
+        deadline: DateTime.now().add(const Duration(days: 45)),
+        createdAt: DateTime.now().subtract(const Duration(hours: 8)),
+        isRemote: true,
+        applicationsCount: 15,
+      ),
+      Job(
+        id: '4',
+        title: 'Intégration système de paiement',
+        description: 'Intégration d\'un système de paiement sécurisé dans une application existante. Connaissance des APIs de paiement requise.',
+        clientId: 'client4',
+        clientName: 'PayTech Solutions',
+        budget: 6500,
+        type: 'fixed',
+        skills: ['Stripe', 'PayPal', 'API Integration', 'Security'],
+        experienceLevel: 'intermediate',
+        deadline: DateTime.now().add(const Duration(days: 15)),
+        createdAt: DateTime.now().subtract(const Duration(hours: 12)),
+        isRemote: true,
+        isFeatured: true,
+        applicationsCount: 6,
+      ),
+      Job(
+        id: '5',
+        title: 'Optimisation SEO site web',
+        description: 'Optimisation SEO complète d\'un site web corporatif. Analyse des mots-clés, optimisation technique et création de contenu.',
+        clientId: 'client5',
+        clientName: 'Marketing Pro',
+        budget: 3500,
+        type: 'hourly',
+        skills: ['SEO', 'Google Analytics', 'Content Marketing', 'HTML/CSS'],
+        experienceLevel: 'intermediate',
+        deadline: DateTime.now().add(const Duration(days: 25)),
+        createdAt: DateTime.now().subtract(const Duration(days: 1)),
+        isRemote: true,
+        applicationsCount: 4,
+      ),
+    ];
   }
 
-  JobStatus _parseJobStatus(String status) {
-    switch (status.toLowerCase()) {
-      case 'open':
-        return JobStatus.open;
-      case 'closed':
-        return JobStatus.closed;
-      case 'in_progress':
-        return JobStatus.inProgress;
-      case 'completed':
-        return JobStatus.completed;
-      default:
-        return JobStatus.open;
-    }
+  List<Job> _getStaticFeaturedJobs() {
+    final allJobs = _getStaticJobs();
+    return allJobs.where((job) => job.isFeatured).toList();
+  }
+
+  List<Map<String, dynamic>> _getStaticFreelancers() {
+    return [
+      {
+        '_id': 'freelancer1',
+        'firstName': 'Ahmed',
+        'lastName': 'Benali',
+        'email': 'ahmed.benali@email.com',
+        'skills': ['Flutter', 'Dart', 'Firebase', 'API Development'],
+        'experience': 'expert',
+        'hourlyRate': 45,
+        'rating': 4.8,
+        'completedProjects': 24,
+        'description': 'Développeur mobile expérimenté spécialisé en Flutter avec 5+ années d\'expérience.',
+        'location': 'Casablanca, Maroc',
+        'profilePicture': null,
+        'isAvailable': true,
+      },
+      {
+        '_id': 'freelancer2',
+        'firstName': 'Fatima',
+        'lastName': 'Zahra',
+        'email': 'fatima.zahra@email.com',
+        'skills': ['UI/UX Design', 'Figma', 'Adobe Creative Suite', 'Prototyping'],
+        'experience': 'expert',
+        'hourlyRate': 40,
+        'rating': 4.9,
+        'completedProjects': 32,
+        'description': 'Designer UI/UX créative avec expertise en design d\'applications mobiles et web.',
+        'location': 'Rabat, Maroc',
+        'profilePicture': null,
+        'isAvailable': true,
+      },
+      {
+        '_id': 'freelancer3',
+        'firstName': 'Youssef',
+        'lastName': 'Alami',
+        'email': 'youssef.alami@email.com',
+        'skills': ['Node.js', 'Express', 'MongoDB', 'React'],
+        'experience': 'intermediate',
+        'hourlyRate': 35,
+        'rating': 4.6,
+        'completedProjects': 18,
+        'description': 'Développeur full-stack passionné par les technologies web modernes.',
+        'location': 'Marrakech, Maroc',
+        'profilePicture': null,
+        'isAvailable': true,
+      },
+    ];
+  }
+
+  List<Map<String, dynamic>> _getStaticApplications() {
+    return [
+      {
+        '_id': 'app1',
+        'jobId': '1',
+        'jobTitle': 'Développement d\'une application mobile Flutter',
+        'freelancerId': 'current_user_id',
+        'status': 'pending',
+        'appliedAt': DateTime.now().subtract(const Duration(days: 2)).toIso8601String(),
+        'proposedBudget': 15000,
+        'deliveryTime': '30 jours',
+        'proposal': 'Je suis très intéressé par ce projet...',
+      },
+      {
+        '_id': 'app2',
+        'jobId': '3',
+        'jobTitle': 'Développement API Backend Node.js',
+        'freelancerId': 'current_user_id',
+        'status': 'accepted',
+        'appliedAt': DateTime.now().subtract(const Duration(days: 5)).toIso8601String(),
+        'proposedBudget': 12000,
+        'deliveryTime': '45 jours',
+        'proposal': 'Avec mon expérience en Node.js...',
+      },
+    ];
+  }
+
+  List<Map<String, dynamic>> _getStaticConversations() {
+    return [
+      {
+        '_id': 'conv1',
+        'participants': ['current_user_id', 'client1'],
+        'otherParticipant': {
+          'id': 'client1',
+          'name': 'TechCorp SA',
+          'avatar': null,
+        },
+        'lastMessage': {
+          'content': 'Merci pour votre proposition, pouvons-nous programmer un appel?',
+          'timestamp': DateTime.now().subtract(const Duration(hours: 2)).toIso8601String(),
+          'senderId': 'client1',
+        },
+        'unreadCount': 1,
+      },
+      {
+        '_id': 'conv2',
+        'participants': ['current_user_id', 'client3'],
+        'otherParticipant': {
+          'id': 'client3',
+          'name': 'StartupTech',
+          'avatar': null,
+        },
+        'lastMessage': {
+          'content': 'Le projet a été accepté, félicitations!',
+          'timestamp': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
+          'senderId': 'client3',
+        },
+        'unreadCount': 0,
+      },
+    ];
   }
 
   Future<List<Map<String, dynamic>>> searchJobs(String query) async {
@@ -171,11 +334,14 @@ class DataProvider extends ChangeNotifier {
     }
   }
 
-  // Freelancer operations - Now using actual API calls
+  // Freelancer operations - Using static data for testing
   Future<void> loadFreelancers() async {
     try {
       _setLoading(true);
-      _freelancers = await _api.getAllFreelancers();
+      // Simulate network delay
+      await Future.delayed(const Duration(milliseconds: 400));
+      
+      _freelancers = _getStaticFreelancers();
       notifyListeners();
     } catch (e) {
       _setError('Failed to load freelancers: $e');
@@ -206,13 +372,14 @@ class DataProvider extends ChangeNotifier {
     }
   }
 
-  // Application operations - Placeholder methods for future API integration
+  // Application operations - Using static data for testing
   Future<void> loadMyApplications(String freelancerId) async {
     try {
       _setLoading(true);
-      // TODO: Replace with actual API call when application endpoints are ready
-      // _myApplications = await _api.getMyApplications(freelancerId);
-      _myApplications = []; // Placeholder
+      // Simulate network delay
+      await Future.delayed(const Duration(milliseconds: 350));
+      
+      _myApplications = _getStaticApplications();
       notifyListeners();
     } catch (e) {
       _setError('Failed to load applications: $e');
@@ -221,13 +388,14 @@ class DataProvider extends ChangeNotifier {
     }
   }
 
-  // Message operations - Placeholder methods for future API integration
+  // Message operations - Using static data for testing
   Future<void> loadConversations(String userId) async {
     try {
       _setLoading(true);
-      // TODO: Replace with actual API call when message endpoints are ready
-      // _conversations = await _api.getUserConversations(userId);
-      _conversations = []; // Placeholder
+      // Simulate network delay
+      await Future.delayed(const Duration(milliseconds: 300));
+      
+      _conversations = _getStaticConversations();
       notifyListeners();
     } catch (e) {
       _setError('Failed to load conversations: $e');

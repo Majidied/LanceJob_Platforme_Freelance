@@ -11,7 +11,7 @@ import '../../widgets/quick_actions.dart';
 import '../job_application_screen.dart';
 
 class FreelancerHome extends StatefulWidget {
-  const FreelancerHome({Key? key}) : super(key: key);
+  const FreelancerHome({super.key});
 
   @override
   State<FreelancerHome> createState() => _FreelancerHomeState();

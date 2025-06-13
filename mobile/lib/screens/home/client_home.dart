@@ -10,7 +10,7 @@ import '../../widgets/stats_card.dart';
 import '../../widgets/quick_actions.dart';
 
 class ClientHome extends StatefulWidget {
-  const ClientHome({Key? key}) : super(key: key);
+  const ClientHome({super.key});
 
   @override
   State<ClientHome> createState() => _ClientHomeState();
