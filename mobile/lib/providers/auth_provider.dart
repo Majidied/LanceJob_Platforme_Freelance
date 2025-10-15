@@ -38,7 +38,7 @@ class AuthProvider extends ChangeNotifier {
     try {
       final response = await _api.login(email, password);
       
-      if (response != null && response['user'] != null) {
+      if (response['user'] != null) {
         _user = User.fromJson(response['user'] as Map<String, dynamic>);
         
         // Save user data locally
@@ -76,7 +76,7 @@ class AuthProvider extends ChangeNotifier {
         role: role,
       );
       
-      if (response != null && response['user'] != null) {
+      if (response['user'] != null) {
         _user = User.fromJson(response['user'] as Map<String, dynamic>);
         
         // Save user data locally
@@ -116,7 +116,7 @@ class AuthProvider extends ChangeNotifier {
     try {
       final response = await _api.updateProfile(_user!.id, updates);
       
-      if (response != null && response['user'] != null) {
+      if (response['user'] != null) {
         _user = User.fromJson(response['user'] as Map<String, dynamic>);
         await _saveUserData();
         _setLoading(false);
